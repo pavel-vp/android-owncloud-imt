@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">imtv-player</string>
+
+    <string name="server_base_url">http://185.4.75.187/owncloud</string>
+    <string name="username">Alexey</string>
+    <string name="password">dev123</string>
+    <string name ="user_agent">Mozilla/5.0 (Android) ownCloud sample </string>
+
+    <string name="download_folder_path">imtv_download</string>
+    <string name="playlist_filepath">Playlists/%s.list</string>
+    <string name="playlist2_filepath">Playlists/%s_2.list</string>
+    <string name="video_dir">Videos</string>
+    <string name="updateapk_filepath">UpdateApk/imtv-player-release.apk</string>
+    <string name="uploadlog_dir">UploadLogs</string>
+    <string name="settings_in_filepath">Settings/FromCRM/%s.ini</string>
+    <string name="settings_out_filepath">Settings/ToCRM/%s.ini</string>
+    <string name="settings_new_filepath">Settings/New/%s.ini</string>
+
+    <!-- число экранов для проигрывания -->
+    <string name="playlists_count">1</string>
+
+    <string name="todo_operation_finished_in_fail">Неудача при скачивании файла!</string>
+
+    <!-- интервал отсылки логов на сервер (минут) -->
+    <string name="uploadlogs_interval_minutes">60</string>
+    <!-- интервал запроса обновления программы с сервера (минут) -->
+    <string name="updateapk_interval_minutes">60</string>
+    <!-- интервал запроса настроек глобальных и проверки регистрации (минут) -->
+    <string name="checkid_interval_minutes">60</string>
+    <!-- максимально допустимый интервал для необновленного файла глобальных настроек (минут)  -->
+    <string name="globalini_expire_interval_minutes">180</string>
+    <!-- интервал обновления плейлистов с сервера (минут)   -->
+    <string name="updateplaylist_interval_minutes">60</string>
+    <!-- интервал для определения зависания плеера (максимальное число минут непроигрывания)   -->
+    <string name="hang_interval_minutes">11</string>
+
+
+</resources>

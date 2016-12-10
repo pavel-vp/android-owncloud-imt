@@ -1,0 +1,5 @@
+include ':', ':RootTools', ':RootShell'
+include ':sample_client', ':imtv-player', ':imtv-guardian'
+include ':test_client'
+project(':RootTools').projectDir = new File('RootTools-master/RootTools')
+project(':RootShell').projectDir = new File('RootTools-master/RootShell')

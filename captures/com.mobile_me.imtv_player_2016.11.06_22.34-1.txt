@@ -1,0 +1,87 @@
+Applications Graphics Acceleration Info:
+Uptime: 525618 Realtime: 525618
+
+** Graphics info for pid 2487 [com.mobile_me.imtv_player] **
+
+Recent DisplayList operations
+SetupShader
+DrawRect
+ResetShader
+DrawDisplayList
+  DrawDisplayList
+    DrawDisplayList
+      DrawDisplayList
+        DrawColor
+DrawRect
+DrawColor
+SetupShader
+DrawRect
+ResetShader
+DrawDisplayList
+  DrawDisplayList
+    DrawDisplayList
+      DrawDisplayList
+        DrawColor
+DrawRect
+DrawColor
+SetupShader
+DrawRect
+ResetShader
+DrawDisplayList
+  DrawDisplayList
+    DrawDisplayList
+      DrawDisplayList
+        DrawColor
+DrawRect
+DrawColor
+SetupShader
+DrawRect
+ResetShader
+DrawDisplayList
+  DrawDisplayList
+    DrawDisplayList
+      DrawDisplayList
+        DrawColor
+DrawRect
+DrawColor
+SetupShader
+DrawRect
+ResetShader
+DrawDisplayList
+  DrawDisplayList
+    DrawDisplayList
+      DrawDisplayList
+        DrawColor
+DrawRect
+DrawColor
+
+Caches:
+Current memory usage / total memory usage (bytes):
+  TextureCache             9216 / 178257920
+  LayerCache                  0 / 141557760
+  RenderBufferCache           0 / 17825792
+  GradientCache               0 /   524288
+  PathCache                   0 / 35651584
+  TextDropShadowCache         0 / 17825792
+  PatchCache                  0 /   131072
+  FontRenderer 0 A8           0 /        0
+  FontRenderer 0 RGBA         0 /        0
+  FontRenderer 0 total        0 /        0
+Other:
+  FboCache                    0 /       16
+Total memory usage:
+  9216 bytes, 0.01 MB
+
+Profile data in ms:
+
+	com.mobile_me.imtv_player/com.mobile_me.imtv_player.ui.MainActivity2/android.view.ViewRootImpl@419c3578
+View hierarchy:
+
+  com.mobile_me.imtv_player/com.mobile_me.imtv_player.ui.MainActivity2/android.view.ViewRootImpl@419c3578
+  6 views, 0,22 kB of display lists, 15 frames rendered
+
+
+Total ViewRootImpl: 1
+Total Views:        6
+Total DisplayList:  0,22 kB
+

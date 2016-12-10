@@ -1,0 +1,64 @@
+AGGREGATED OVER LAST 24 HOURS:
+Per-Package Stats:
+  * com.mobile_me.imtv_player / u0a60:
+      * com.mobile_me.imtv_player / u0a60:
+               TOTAL: 48% (10MB-23MB-29MB/8,3MB-20MB-27MB over 268)
+                 Top: 48% (10MB-23MB-29MB/8,3MB-20MB-27MB over 268)
+            Receiver: 0,00%
+            (Cached): 0,00%
+
+Summary:
+  * com.mobile_me.imtv_player / u0a60:
+           TOTAL: 48% (10MB-23MB-29MB/8,3MB-20MB-27MB over 268)
+             Top: 48% (10MB-23MB-29MB/8,3MB-20MB-27MB over 268)
+        Receiver: 0,00%
+        (Cached): 0,00%
+
+Run time Stats:
+  SOn /Norm: +22h45m41s522ms
+      TOTAL: +22h45m41s522ms
+
+          Start time: 1970-01-02 08:00:00
+  Total elapsed time: +22h45m45s314ms (partial) libdvm.so chromeview
+
+AGGREGATED OVER LAST 3 HOURS:
+Per-Package Stats:
+  * com.mobile_me.imtv_player / u0a60:
+      * com.mobile_me.imtv_player / u0a60:
+               TOTAL: 2,8% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+                 Top: 2,8% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+            Receiver: 0,00%
+
+Summary:
+  * com.mobile_me.imtv_player / u0a60:
+           TOTAL: 2,8% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+             Top: 2,8% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+        Receiver: 0,00%
+
+Run time Stats:
+  SOn /Norm: +4h13m41s656ms
+      TOTAL: +4h13m41s656ms
+
+          Start time: 1970-01-02 08:00:00
+  Total elapsed time: +4h13m45s448ms (partial) libdvm.so chromeview
+
+CURRENT STATS:
+Per-Package Stats:
+  * com.mobile_me.imtv_player / u0a60:
+      * com.mobile_me.imtv_player / u0a60:
+               TOTAL: 92% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+                 Top: 92% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+            Receiver: 0,05%
+
+Summary:
+  * com.mobile_me.imtv_player / u0a60:
+           TOTAL: 92% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+             Top: 92% (10MB-11MB-11MB/8,3MB-8,8MB-9,3MB over 6)
+        Receiver: 0,05%
+
+Run time Stats:
+  SOn /Norm: +7m41s554ms (running)
+      TOTAL: +7m41s554ms
+
+          Start time: 1970-01-02 08:00:00
+  Total elapsed time: +7m45s532ms (partial) libdvm.so chromeview

@@ -1,0 +1,59 @@
+apply plugin: 'com.android.application'
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
+
+
+    defaultConfig {
+        applicationId "com.mobile_me.imtv_player"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 22
+        versionName "1.022"
+    }
+    signingConfigs {
+        debug {
+            storeFile file("../../mobileme-keystore.jks")
+            storePassword "mobileme"
+            keyAlias "mobileme"
+            keyPassword "mobileme"
+        }
+        release {
+            storeFile file("../../mobileme-keystore.jks")
+            storePassword "mobileme"
+            keyAlias "mobileme"
+            keyPassword "mobileme"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+
+            applicationVariants.all { variant ->
+                variant.outputs.each { output ->
+                    output.outputFile = new File(output.outputFile.parent,
+                            "imtv-player-release-"+versionName+".apk"
+                    )
+                }
+            }
+        }
+    }
+}
+dependencies {
+    compile project(':')
+    compile project(':RootShell')
+    compile project(':RootTools')
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.4.1'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.4.1'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.4.1'
+    testCompile 'junit:junit:4.12'
+
+}
+
+repositories {
+    mavenCentral()
+}

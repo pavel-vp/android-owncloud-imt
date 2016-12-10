@@ -1,0 +1,35 @@
+Applications Memory Usage (kB):
+Uptime: 792430 Realtime: 792430
+
+** MEMINFO in pid 2487 [com.mobile_me.imtv_player] **
+                   Pss  Private  Private  Swapped     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------
+  Native Heap       24       24        0        0    20540     4857       38
+  Dalvik Heap     3861     3700        0        0     6724     5619     1105
+ Dalvik Other     1903     1728        0        0                           
+        Stack      108      108        0        0                           
+    Other dev        4        0        4        0                           
+     .so mmap     1015      452       28        0                           
+    .apk mmap      145        0        8        0                           
+    .ttf mmap       32        0        0        0                           
+    .dex mmap     3594       96     2600        0                           
+   Other mmap       39        4        0        0                           
+      Unknown     4050     4032        0        0                           
+        TOTAL    14775    10144     2640        0    27264    10476     1143
+ 
+ Objects
+               Views:       12         ViewRootImpl:        1
+         AppContexts:        4           Activities:        2
+              Assets:        2        AssetManagers:        2
+       Local Binders:        9        Proxy Binders:       18
+    Death Recipients:        0
+     OpenSSL Sockets:        0
+ 
+ SQL
+         MEMORY_USED:      101
+  PAGECACHE_OVERFLOW:       20          MALLOC_SIZE:       62
+ 
+ DATABASES
+      pgsz     dbsz   Lookaside(b)          cache  Dbname
+         4       16             61      4836/28/5  /data/data/com.mobile_me.imtv_player/databases/imtv_db
