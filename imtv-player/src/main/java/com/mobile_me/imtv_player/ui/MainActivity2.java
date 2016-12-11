@@ -121,23 +121,26 @@ public class MainActivity2  extends Activity implements SensorEventListener {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Calendar cal = Calendar.getInstance();
+                CustomExceptionHandler.log("hang checking isactive="+isActive+", dao.getTerminated()="+dao.getTerminated());
                 while (isActive && !dao.getTerminated()) {
                     // проверить на то что завис плеер (старт предыдущего проигрывания)
-                    long now = cal.getTimeInMillis();
+                    long now = Calendar.getInstance().getTimeInMillis();
+                    CustomExceptionHandler.log("hang checking now-last="+(now - lastStartPlayFile));
                     if ((now - lastStartPlayFile) > (1000 * 60 * Long.parseLong(getString(R.string.hang_interval_minutes))) ) {
                         CustomExceptionHandler.log("hang detected");
                         dao.setTerminated(true);
+                        break;
                     }
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(60000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
                 if (dao.getTerminated()) {
                     CustomExceptionHandler.log("finish by hang");
-                    MainActivity2.this.finish();
+                    //MainActivity2.this.finish();
+                    System.exit(0);
                 }
             }
         }).start();
@@ -166,7 +169,7 @@ public class MainActivity2  extends Activity implements SensorEventListener {
     public void playNextVideoFile(VideoView vw) {
         lastStartPlayFile = Calendar.getInstance().getTimeInMillis();
         int type = (vw == vw1) ? MTPlayList.TYPEPLAYLIST_1 : MTPlayList.TYPEPLAYLIST_2;
-        CustomExceptionHandler.log("playNextVideoFile started. type="+type);
+        CustomExceptionHandler.log("playNextVideoFile started. type="+type+",lastStartPlayFile="+lastStartPlayFile);
         logMemory();
         if (vw.isPlaying() || (type == MTPlayList.TYPEPLAYLIST_1 && isInPreparing) || (type == MTPlayList.TYPEPLAYLIST_2 && isInPreparing2) || !isActive) {
             CustomExceptionHandler.log("playNextVideoFile playing exit, type="+type);
