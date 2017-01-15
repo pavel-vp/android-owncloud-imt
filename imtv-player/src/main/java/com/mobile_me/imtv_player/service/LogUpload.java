@@ -3,19 +3,19 @@ package com.mobile_me.imtv_player.service;
 import com.mobile_me.imtv_player.R;
         import com.mobile_me.imtv_player.dao.Dao;
         import com.mobile_me.imtv_player.model.MTPlayList;
-        import com.mobile_me.imtv_player.model.MTPlayListRec;
-        import com.mobile_me.imtv_player.util.CustomExceptionHandler;
+import com.mobile_me.imtv_player.model.MTPlayListRec;
+import com.mobile_me.imtv_player.util.CustomExceptionHandler;
         import com.owncloud.android.lib.common.operations.RemoteOperationResult;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 
-        import java.io.BufferedInputStream;
+import java.io.BufferedInputStream;
         import java.io.BufferedOutputStream;
         import java.io.File;
         import java.io.FileInputStream;
         import java.io.FileOutputStream;
         import java.text.SimpleDateFormat;
         import java.util.Calendar;
-        import java.util.concurrent.Executors;
-        import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeUnit;
         import java.util.zip.ZipEntry;
         import java.util.zip.ZipOutputStream;
 
@@ -83,7 +83,7 @@ public class LogUpload implements IMTCallbackEvent {
 
             // Отправить пожатый файл с логом
             // TODO: отправить все файлы zip в этой директории
-            helper.uploadLogToServer(tmpZipFileName);
+            helper.uploadLogToServer(tmpZipFileName, dao.getContext().getResources().getString(R.string.uploadlog_dir));
         } catch (Exception e) {
             CustomExceptionHandler.logException("ошибка при отправке лога", e);
         }
@@ -121,6 +121,11 @@ public class LogUpload implements IMTCallbackEvent {
 
     @Override
     public void onSimpleFileLoaded(MTOwnCloudHelper ownCloudHelper, File file) {
+
+    }
+
+    @Override
+    public void onFileInfoLoaded(RemoteFile fileInfo) {
 
     }
 

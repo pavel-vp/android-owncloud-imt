@@ -1,22 +1,19 @@
 package com.mobile_me.imtv_player.ui;
 
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Handler;
-import android.provider.CalendarContract;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.VideoView;
 
 import com.mobile_me.imtv_player.R;
@@ -26,13 +23,16 @@ import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.mobile_me.imtv_player.service.MTLoaderManager;
 import com.mobile_me.imtv_player.service.MTPlayListManager;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
+import com.mobile_me.imtv_player.util.RootUtils;
+import com.stericson.rootshell.RootShell;
+import com.stericson.roottools.RootTools;
 
 import java.util.Calendar;
 
 /**
  * Created by pasha on 10/12/16.
  */
-public class MainActivity2  extends Activity implements SensorEventListener {
+public class MainActivity2  extends Activity implements SensorEventListener, LocationListener {
 
     VideoView vw1;
     VideoView vw2;
@@ -45,6 +45,7 @@ public class MainActivity2  extends Activity implements SensorEventListener {
     boolean isInPreparing2 = false;
     private boolean is2Players = false;
     private Handler handler = new Handler();
+    private volatile Location currentLocation = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +112,26 @@ public class MainActivity2  extends Activity implements SensorEventListener {
             vw2.setVisibility(View.GONE);*/
         }
 
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (!dao.getTerminated()) {
+                    Calendar calNow = Calendar.getInstance();
+                    calNow.add(Calendar.SECOND, 0-Integer.parseInt(getString(R.string.good_location_interval_seconds)));
+                    Calendar calLoc = Calendar.getInstance();
+                    calLoc.setTime(calLoc.getTime());
+                    if (currentLocation != null && calNow.after(calLoc)) {
+                        currentLocation = null;
+                    }
+                    try {
+                        Thread.sleep(4000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+
     }
 
     @Override
@@ -133,6 +154,7 @@ public class MainActivity2  extends Activity implements SensorEventListener {
                     }
                     try {
                         Thread.sleep(60000);
+//                        Thread.sleep(6);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -140,7 +162,19 @@ public class MainActivity2  extends Activity implements SensorEventListener {
                 if (dao.getTerminated()) {
                     CustomExceptionHandler.log("finish by hang");
                     //MainActivity2.this.finish();
-                    System.exit(0);
+                    //System.exit(0);
+
+                    try {
+                        String command;
+                        command = "reboot";
+                        Process proc = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
+                        int res = 0;
+                        res = proc.waitFor();
+                        CustomExceptionHandler.log("res procReboot=" + res);
+                    } catch (Exception e) {
+                        CustomExceptionHandler.logException("error reboot - ", e);
+                    }
+
                 }
             }
         }).start();
@@ -184,8 +218,8 @@ public class MainActivity2  extends Activity implements SensorEventListener {
 
         boolean forcedPlay = false;
         MTPlayListManager playListManager = Dao.getInstance(this).getPlayListManagerByType(type );
+        MTPlayListRec found = null;
         if (type == MTPlayList.TYPEPLAYLIST_1) {
-            MTPlayListRec found = null;
             // взять из плейлиста следующий непроигранный
             if (playListManager.getPlayList() != null) {
                 found = playListManager.getNextVideoFileForPlay(forcedPlay);
@@ -198,14 +232,15 @@ public class MainActivity2  extends Activity implements SensorEventListener {
             }
             filePathToPlay = dao.getDownVideoFolder() + found.getFilename();
         } else {
-            MTPlayListRec found = playListManager.getRandomFile();
+            found = playListManager.getRandomFile();
             filePathToPlay = dao.getDownVideoFolder() + found.getFilename();
         }
-        if (filePathToPlay != null && isActive) {
+        if (filePathToPlay != null && isActive && found != null) {
             // запустить проигрывание этого файла
             CustomExceptionHandler.log("playList start playing, type="+type+", filePathToPlay="+filePathToPlay);
             vw.setVideoPath(filePathToPlay);
             vw.start();
+            dao.getmStatisticDBHelper().addStat(found, currentLocation);
         }
         if (forcedPlay) {
             // запустить загрузку плейлиста TODO: не надо же уже?
@@ -232,4 +267,23 @@ public class MainActivity2  extends Activity implements SensorEventListener {
         CustomExceptionHandler.log("memory: freeSize="+freeSize+", totalSize="+totalSize+ ", maxSize="+maxSize);
     }
 
+    @Override
+    public void onLocationChanged(Location location) {
+        this.currentLocation = location;
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
 }

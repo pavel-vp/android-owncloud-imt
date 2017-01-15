@@ -14,9 +14,11 @@ import android.widget.Toast;
 
 import com.mobile_me.imtv_player.BuildConfig;
 import com.mobile_me.imtv_player.R;
+import com.mobile_me.imtv_player.model.MTGlobalSetupRec;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.service.LogUpload;
 import com.mobile_me.imtv_player.service.MTPlayListManager;
+import com.mobile_me.imtv_player.service.SettingsLoader;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.mobile_me.imtv_player.util.RootUtils;
 
@@ -37,12 +39,15 @@ public class Dao {
     public final static String PATH_KEY = "path_key";
     public final static String DEVICEID_KEY = "deviceid_key";
     public final static String LASTTIMESETTINGS_KEY = "lasttimesettings_key";
+    public final static String MIN_COUNT_FREE = "min_count_free";
+    public final static String COUNT_DAYS_BEFORE = "count_days_before";
 
     private static Dao instance;
 
     private Context ctx;
 
     private PlayListDBHelper mPlayListDBHelper;
+    private StatisticDBHelper mStatisticDBHelper;
     private SharedPreferences mSharedPreferences;
     File downFolder;
     String remotePlayListFilePath;
@@ -57,6 +62,7 @@ public class Dao {
     private MTPlayListManager playListManager2;
     private Boolean isTerminated = false;
     private Long lastTimeSettings = null;
+    private MTGlobalSetupRec setupRec;
 
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
@@ -70,7 +76,15 @@ public class Dao {
     public Dao(Context ctx) {
         this.ctx = ctx;
         this.mPlayListDBHelper = new PlayListDBHelper(this.ctx);
+        this.mStatisticDBHelper = new StatisticDBHelper(this.ctx);
         this.mSharedPreferences = ctx.getSharedPreferences("settings", Activity.MODE_PRIVATE);
+        this.setupRec = new MTGlobalSetupRec();
+        try {
+            setupRec.setMin_count_free(this.mSharedPreferences.getLong(MIN_COUNT_FREE, -1));
+            setupRec.setCount_days_before(this.mSharedPreferences.getLong(COUNT_DAYS_BEFORE, -1));
+        } catch (Exception e) {
+            CustomExceptionHandler.log("no previous setup rec");
+        }
 
 /*        TelephonyManager telephonyManager = (TelephonyManager)ctx.getSystemService(Context.TELEPHONY_SERVICE);
         deviceId = telephonyManager.getDeviceId();
@@ -288,7 +302,11 @@ public class Dao {
         this.lastTimeSettings = lastTimeSettings;
         CustomExceptionHandler.log("set savedDeviceID to :"+lastTimeSettings);
         SharedPreferences.Editor ed = mSharedPreferences.edit();
-        ed.putString(LASTTIMESETTINGS_KEY, Long.toString(lastTimeSettings));
+        if (lastTimeSettings == null) {
+            ed.putString(LASTTIMESETTINGS_KEY, null);
+        } else {
+            ed.putString(LASTTIMESETTINGS_KEY, Long.toString(lastTimeSettings));
+        }
         ed.commit();
     }
 
@@ -296,5 +314,21 @@ public class Dao {
         return this.executorService;
     }
 
+
+    public StatisticDBHelper getmStatisticDBHelper() {
+        return mStatisticDBHelper;
+    }
+
+    public MTGlobalSetupRec getSetupRec() {
+        return setupRec;
+    }
+
+    public void setSetupRec(MTGlobalSetupRec setupRec) {
+        this.setupRec = setupRec;
+        SharedPreferences.Editor ed = mSharedPreferences.edit();
+        ed.putString(MIN_COUNT_FREE, setupRec == null ? null : Long.toString(setupRec.getMin_count_free()));
+        ed.putString(COUNT_DAYS_BEFORE, setupRec == null ? null : Long.toString(setupRec.getCount_days_before()));
+        ed.commit();
+    }
 
 }

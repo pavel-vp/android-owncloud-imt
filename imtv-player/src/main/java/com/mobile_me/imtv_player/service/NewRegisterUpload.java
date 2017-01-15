@@ -1,20 +1,17 @@
 package com.mobile_me.imtv_player.service;
 
+import android.os.Environment;
+
+import com.mobile_me.imtv_player.R;
 import com.mobile_me.imtv_player.dao.Dao;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 /**
  * Created by pasha on 03.11.16.
@@ -47,11 +44,16 @@ public class NewRegisterUpload implements IMTCallbackEvent {
             CustomExceptionHandler.log("try startRegisterAndUpload");
 
             File tmpFile = new File(dao.getDownFolder(), dao.getRemoteSettingsNewFilePath());
+            File onlyDir = new File(tmpFile.getParent());
+
+            onlyDir.mkdirs();
+
+            tmpFile.delete();
             tmpFile.createNewFile();
 
             CustomExceptionHandler.log("created empty file tmpFile=" + tmpFile.getAbsolutePath());
             // Отправить
-            helper.uploadLogToServer(dao.getRemoteSettingsNewFilePath());
+            helper.uploadLogToServer(tmpFile.getAbsolutePath(), dao.getContext().getResources().getString(R.string.uploadsettings_dir));
         } catch (Exception e) {
             CustomExceptionHandler.logException("ошибка при отправке файла", e);
         }
@@ -75,8 +77,8 @@ public class NewRegisterUpload implements IMTCallbackEvent {
 
     @Override
     public void onError(int mode, MTOwnCloudHelper ownCloudHelper, RemoteOperationResult result) {
-        CustomExceptionHandler.log("newregisterUpload file upload error, starting again");
-        startRegisterAndUpload();
+        CustomExceptionHandler.log("newregisterUpload file upload error, no restarting ");
+        //startRegisterAndUpload();
     }
 
     @Override
@@ -86,6 +88,11 @@ public class NewRegisterUpload implements IMTCallbackEvent {
 
     @Override
     public void onSimpleFileLoaded(MTOwnCloudHelper ownCloudHelper, File file) {
+
+    }
+
+    @Override
+    public void onFileInfoLoaded(RemoteFile fileInfo) {
 
     }
 

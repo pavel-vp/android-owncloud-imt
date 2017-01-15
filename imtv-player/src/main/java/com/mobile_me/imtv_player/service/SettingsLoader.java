@@ -1,16 +1,21 @@
 package com.mobile_me.imtv_player.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mobile_me.imtv_player.R;
 import com.mobile_me.imtv_player.dao.Dao;
+import com.mobile_me.imtv_player.model.MTGlobalSetupRec;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.concurrent.Executors;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -37,6 +42,11 @@ public class SettingsLoader implements IMTCallbackEvent {
 
     public SettingsLoader(Dao dao) {
         this.dao = dao;
+        File p = new File(dao.getDownFolder().getAbsolutePath(), new File(dao.getRemoteSettingsInFilePath()).getParent());
+        p.mkdirs();
+        File f = new File(dao.getDownFolder().getAbsolutePath(), dao.getRemoteSettingsInFilePath());
+        f.delete();
+
         helper = new MTOwnCloudHelper(dao.getRemoteSettingsInFilePath(), dao.getContext(), this, MTOwnCloudHelper.TYPEFILE_SIMPLE);
         sdf = new SimpleDateFormat("yyMMdd-HHmmss");
     }
@@ -63,6 +73,10 @@ public class SettingsLoader implements IMTCallbackEvent {
     @Override
     public void onError(int mode, MTOwnCloudHelper ownCloudHelper, RemoteOperationResult result) {
         // просто заново перезапустим, не обновляя время
+        dao.setLastTimeSettings(null);
+        // запустим регистрцию
+        CustomExceptionHandler.log("start NewRegisterUpload because it need to");
+        NewRegisterUpload.getInstance(dao).startRegisterAndUpload();
         reLaunchSettingLoader();
     }
 
@@ -74,10 +88,23 @@ public class SettingsLoader implements IMTCallbackEvent {
     @Override
     public void onSimpleFileLoaded(MTOwnCloudHelper ownCloudHelper, File file) {
         // загрузили файл настроек
-        // TODO: прочитаем настройки запомним в лок базе
-        // отметим время
-        dao.setLastTimeSettings(Calendar.getInstance().getTime().getTime());
-        reLaunchSettingLoader();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            MTGlobalSetupRec setupRec = mapper.readValue(file, MTGlobalSetupRec.class);
+            // отметим время
+            dao.setLastTimeSettings(Calendar.getInstance().getTime().getTime());
+            dao.setSetupRec(setupRec);
+            //playList = mapper.readValue(new File(dao.getDownFolder().getAbsolutePath(), dao.getRemotePlayListFilePath()), MTPlayList.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+            CustomExceptionHandler.logException("settings convert error ", e);
+            reLaunchSettingLoader();
+        }
+    }
+
+    @Override
+    public void onFileInfoLoaded(RemoteFile fileInfo) {
+
     }
 
     private void reLaunchSettingLoader() {

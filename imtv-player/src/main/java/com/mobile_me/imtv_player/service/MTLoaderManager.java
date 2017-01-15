@@ -8,6 +8,7 @@ import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -69,10 +70,19 @@ public class MTLoaderManager implements IMTCallbackEvent {
         //Toast.makeText(this, "Плейлист загружен", Toast.LENGTH_SHORT).show();
         playListNew.setTypePlayList(getPLayListTypeByOwnHandler(ownCloudHelper));
         Dao.getInstance(ctx).getPlayListManagerByType(playListNew.getTypePlayList()).mergeAndSavePlayList(playListNew);
+        doLoadNextVideoFiles(ownCloudHelper);
+    }
+
+    private void doLoadNextVideoFiles(MTOwnCloudHelper ownCloudHelper) {
+        CustomExceptionHandler.log("doLoadNextVideoFiles start.");
+        int typePlayList = getPLayListTypeByOwnHandler(ownCloudHelper);
+        MTPlayList playList = Dao.getInstance(ctx).getPlayListManagerByType(typePlayList).getPlayList();
+
         // запустить загрузку файлов из плейлиста при необходимости
-        MTPlayListRec fileToLoad = Dao.getInstance(ctx).getPlayListManagerByType(playListNew.getTypePlayList()).getNextFileToLoad();
+        MTPlayListRec fileToLoad = Dao.getInstance(ctx).getPlayListManagerByType(playList.getTypePlayList()).getNextFileToLoad();
+        CustomExceptionHandler.log("doLoadNextVideoFiles filetoload ="+fileToLoad);
         if (fileToLoad != null) {
-            helpers.get(playListNew.getTypePlayList() - 1).loadVideoFileFromPlayList(fileToLoad);
+            helpers.get(playList.getTypePlayList() - 1).loadVideoFileFromPlayList(fileToLoad);
         }
     }
 
@@ -84,7 +94,7 @@ public class MTLoaderManager implements IMTCallbackEvent {
         int typePlayList = getPLayListTypeByOwnHandler(ownCloudHelper);
         Dao.getInstance(ctx).getPlayListManagerByType(typePlayList).setFileStateFlag(file, MTPlayListRec.STATE_UPTODATE);
         // стартовать проверку на загрузку других файлов из плейлиста TODO: тут? или после загрузки плейлиста кажый раз проверять по 1му файлу?
-//        doLoadNextVideoFiles();
+        doLoadNextVideoFiles(ownCloudHelper);
     }
 
     @Override
@@ -104,6 +114,11 @@ public class MTLoaderManager implements IMTCallbackEvent {
 
     @Override
     public void onSimpleFileLoaded(MTOwnCloudHelper ownCloudHelper, File file) {
+
+    }
+
+    @Override
+    public void onFileInfoLoaded(RemoteFile fileInfo) {
 
     }
 

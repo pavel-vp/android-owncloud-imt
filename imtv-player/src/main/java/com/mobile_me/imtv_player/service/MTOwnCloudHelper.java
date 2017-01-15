@@ -11,6 +11,7 @@ import com.mobile_me.imtv_player.R;
 import com.mobile_me.imtv_player.dao.Dao;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
+import com.mobile_me.imtv_player.model.MTPointRec;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.owncloud.android.lib.common.OwnCloudClient;
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
@@ -20,6 +21,8 @@ import com.owncloud.android.lib.common.operations.OnRemoteOperationListener;
 import com.owncloud.android.lib.common.operations.RemoteOperation;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.resources.files.DownloadRemoteFileOperation;
+import com.owncloud.android.lib.resources.files.ReadRemoteFileOperation;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 import com.owncloud.android.lib.resources.files.UploadRemoteFileOperation;
 
 import java.io.File;
@@ -42,6 +45,8 @@ public class MTOwnCloudHelper implements OnRemoteOperationListener, OnDatatransf
     private static final int STATE_LOADUPDATE = 3;
     private static final int STATE_LOADSIMPLEFILE = 4;
     private static final int STATE_UPLOADLOG = 5;
+    private static final int STATE_LOADFILEINFO = 6;
+
 
     Context ctx;
     private OwnCloudClient mClient;
@@ -97,12 +102,12 @@ public class MTOwnCloudHelper implements OnRemoteOperationListener, OnDatatransf
         }
     }
 
-    public void uploadLogToServer(String file) {
+    public void uploadLogToServer(String file, String remoteDir) {
         if (state == STATE_UNKNOWN) {
             state = STATE_UPLOADLOG;
             File f = new File(file);
             localFileToUpload = file;
-            String remotePath = ctx.getResources().getString(R.string.uploadlog_dir) + "/" + f.getName();
+            String remotePath = remoteDir + "/" + f.getName();
             UploadRemoteFileOperation uploadRemoteFileOperation = new UploadRemoteFileOperation(file, remotePath, "binary/octet-stream");
             uploadRemoteFileOperation.addDatatransferProgressListener(this);
             uploadRemoteFileOperation.execute(mClient, this, mHandler);
@@ -122,8 +127,19 @@ public class MTOwnCloudHelper implements OnRemoteOperationListener, OnDatatransf
             CustomExceptionHandler.log("onRemoteOperationFinish error="+result.getLogMessage());
             state = STATE_UNKNOWN;
             cb.onError(state, this,  result);
+        } else if (operation instanceof ReadRemoteFileOperation ) {
+            CustomExceptionHandler.log("onReadRemoteOperationFinish success. state="+state);
+            switch (state) {
+                case STATE_LOADFILEINFO:
+                    state = STATE_UNKNOWN;
+                    // загрузили информацио о файле
+                    // событие обработчик
+                    cb.onFileInfoLoaded((RemoteFile) (result.getData().get(0)));
+                    break;
+            }
+
         } else if (operation instanceof DownloadRemoteFileOperation ) {
-            CustomExceptionHandler.log("onRemoteOperationFinish success. state="+state);
+            CustomExceptionHandler.log("onDownloadRemoteOperationFinish success. state="+state);
             switch (state) {
                 case STATE_LOADPLAYLIST:
                     // загрузили плейлист
@@ -137,7 +153,28 @@ public class MTOwnCloudHelper implements OnRemoteOperationListener, OnDatatransf
                             rec.setId(Long.parseLong(m.get("id")));
                             rec.setFilename(m.get("filename"));
                             rec.setSize(Long.parseLong(m.get("size")));
+                            rec.setType(m.get("type"));
+                            rec.setMd5(m.get("md5"));
+/*                            LinkedHashMap<String, String> d = m.get("date");
+                            if (d != null && d.size() == 2) {
+
+                            }
+                            private MTDateRec date = new MTDateRec(); // Период выхода ролика
+                            private MTPointRec point = new MTPointRec(); // координаты точки
+*/
                             rec.setDuration(Long.parseLong(m.get("duration")));
+                            if (m.get("periodicity") != null) {
+                                rec.setPeriodicity(Long.parseLong(m.get("periodicity")));
+                            }
+                            if (m.get("radius") != null) {
+                                rec.setRadius(Double.parseDouble(m.get("radius")));
+                            }
+                            if (m.get("min_count") != null) {
+                                rec.setMin_count(Long.parseLong(m.get("min_count")));
+                            }
+                            if (m.get("max_count") != null) {
+                                rec.setMax_count(Long.parseLong(m.get("max_count")));
+                            }
                             playList.getPlaylist().add(rec);
                         }
                         //playList = mapper.readValue(new File(dao.getDownFolder().getAbsolutePath(), dao.getRemotePlayListFilePath()), MTPlayList.class);
@@ -187,6 +224,16 @@ public class MTOwnCloudHelper implements OnRemoteOperationListener, OnDatatransf
             CustomExceptionHandler.log("loadVideoFileFromPlayList downloadOperation.executed");
         }
     }
+
+    public void loadFileInfoFromServer() {
+        if (state == STATE_UNKNOWN) {
+            state = STATE_LOADFILEINFO;
+            ReadRemoteFileOperation readInfoOperation = new ReadRemoteFileOperation(playListRemotePath);
+            readInfoOperation.execute(mClient, this, mHandler);
+            CustomExceptionHandler.log("loadFileInfoFromServer started=" + playListRemotePath);
+        }
+    }
+
 
     public void loadUpdateFromServer() {
         if (state == STATE_UNKNOWN) {

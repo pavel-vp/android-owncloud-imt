@@ -3,6 +3,7 @@ package com.mobile_me.imtv_player.service;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 
 import java.io.File;
 
@@ -16,4 +17,5 @@ public interface IMTCallbackEvent {
     void onError(int mode, MTOwnCloudHelper ownCloudHelper,  RemoteOperationResult result);
     void onUploadLog(String uploadedLocalFile);
     void onSimpleFileLoaded(MTOwnCloudHelper ownCloudHelper, File file);
+    void onFileInfoLoaded(RemoteFile fileInfo);
 }

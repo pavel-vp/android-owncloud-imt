@@ -17,9 +17,11 @@ import com.mobile_me.imtv_player.service.MTOwnCloudHelper;
 import com.mobile_me.imtv_player.service.NewRegisterUpload;
 import com.mobile_me.imtv_player.service.SettingsLoader;
 import com.mobile_me.imtv_player.service.Updater;
+import com.mobile_me.imtv_player.service.tasks.CheckForSettingsLocalTask;
 import com.mobile_me.imtv_player.service.tasks.CheckPlayListLocalTask;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -76,27 +78,17 @@ public class LogoActivity extends AbstractBaseActivity implements IMTCallbackEve
 
         CustomExceptionHandler.log("start updater");
         Updater updater = new Updater(this);
-        updater.startDownLoadUpdate();
+        updater.startGetInfoUpdate();
 
         CustomExceptionHandler.log("start logupdater");
         LogUpload.getInstance(Dao.getInstance(this)).reLaunchUploadLog();
 
+        // обнулим setup
+        CustomExceptionHandler.log("clear setup");
+        Dao.getInstance(this).setSetupRec(null); // будем жидать пока не будет заполнен сетап
+
         CustomExceptionHandler.log("start settings loader");
         SettingsLoader.getInstace(Dao.getInstance(this)).tryLoadSettings();
-
-        if (Dao.getInstance(this).getLastTimeSettings() == null) {
-            CustomExceptionHandler.log("start NewRegisterUpload because it need to");
-            NewRegisterUpload.getInstance(Dao.getInstance(this)).startRegisterAndUpload();
-        }
-    }
-
-    private void handleModeByAction(int action) {
-        switch (action) {
-            case ACTION_SETINGS_LOCAL_OK:
-                // настройки загружены ранее
-
-
-        }
 
     }
 
@@ -137,8 +129,13 @@ public class LogoActivity extends AbstractBaseActivity implements IMTCallbackEve
                 return;
             }
         }
-        // если нет
-        // есть локальный плейлист - проверяем наличие файлов на диске
+        // если все загружено, но будем ждать установленного сетапа
+        if (Dao.getInstance(this).getSetupRec() == null) {
+            runTaskInBackgroundNoDialog(new CheckForSettingsLocalTask());
+            return;
+        }
+        CustomExceptionHandler.log("setuprec loaded");
+        //
         Intent in = new Intent();
         in.setClass(this, MainActivity2.class);
         startActivity(in);
@@ -160,6 +157,9 @@ public class LogoActivity extends AbstractBaseActivity implements IMTCallbackEve
                 // нет локального плейлиста - запускаем задачу первоначальной загрузки в текущем активити (пусть будет логотип)
                 helpers.get(type - 1).loadPlayListFromServer();
             }
+        }
+        if (task instanceof CheckForSettingsLocalTask) {
+            tryStartMainActivity();
         }
     }
 
@@ -216,6 +216,11 @@ public class LogoActivity extends AbstractBaseActivity implements IMTCallbackEve
 
     @Override
     public void onSimpleFileLoaded(MTOwnCloudHelper ownCloudHelper, File file) {
+
+    }
+
+    @Override
+    public void onFileInfoLoaded(RemoteFile fileInfo) {
 
     }
 

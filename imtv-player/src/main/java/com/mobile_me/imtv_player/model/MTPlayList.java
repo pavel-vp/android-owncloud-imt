@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -29,9 +27,9 @@ public class MTPlayList implements Serializable {
     public MTPlayListRec searchById(Long id) {
         if (playlist.size() > 0) {
             for (MTPlayListRec r : playlist) {
-                if (r.getId() == id) {
-                    return r;
-                }
+                    if (r.getId().equals(id)) {
+                        return r;
+                    }
             }
         }
         return null;
@@ -44,17 +42,5 @@ public class MTPlayList implements Serializable {
     public void setTypePlayList(int typePlayList) {
         this.typePlayList = typePlayList;
     }
-/*
-    @Override
-    public String toString() {
-        return new StringBuilder()
-        .append("MTPlayList{")
-                .append("typePlayList=")
-                .append(typePlayList)
-                .append(", playlist=")
-                .append(Arrays.toString(playlist.toArray()))
-                .append("}")
-                .toString();
-    }
-    */
+
 }

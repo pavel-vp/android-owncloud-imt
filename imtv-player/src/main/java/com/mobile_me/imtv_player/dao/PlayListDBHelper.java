@@ -6,8 +6,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.mobile_me.imtv_player.model.MTDateRec;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
+import com.mobile_me.imtv_player.model.MTPointRec;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 
 /**
@@ -21,6 +23,16 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
     private static final String FILENAME = "filename";
     private static final String SIZE = "size";
     private static final String DURATION = "duration";
+    private static final String TYPE = "typerec";
+    private static final String DTFROM = "dtfrom";
+    private static final String DTTO = "dtto";
+    private static final String MD5 = "md5";
+    private static final String PERIODICITY = "periodicity";
+    private static final String POINTLAT = "lat";
+    private static final String POINTLON = "lon";
+    private static final String RADIUS = "radius";
+    private static final String MAXCOUNT = "maxcount";
+    private static final String MINCOUNT = "mincount";
     private static final String STATE = "state";
     private static final String PLAYED = "played";
     private static final String NUMORD = "numord";
@@ -33,6 +45,16 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
             + FILENAME + " text, "
             + SIZE + " int, "
             + DURATION + " int, "
+            + TYPE + " text,"
+            + DTFROM + " text,"
+            + DTTO + " text,"
+            + MD5 + " text,"
+            + PERIODICITY + " int,"
+            + POINTLAT + " double,"
+            + POINTLON + " double,"
+            + RADIUS + " double,"
+            + MAXCOUNT + " int,"
+            + MINCOUNT + " int,"
             + STATE + " int, "
             + PLAYED + " int, "
             + NUMORD + " int, "
@@ -47,7 +69,8 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(CREATE_TABLE);
+        db.execSQL(StatisticDBHelper.CREATE_TABLE);
+        db.execSQL(PlayListDBHelper.CREATE_TABLE);
     }
 
     @Override
@@ -69,6 +92,14 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
                     rec.setFilename(cur.getString(cur.getColumnIndex(FILENAME)));
                     rec.setSize(cur.getLong(cur.getColumnIndex(SIZE)));
                     rec.setDuration(cur.getLong(cur.getColumnIndex(DURATION)));
+                    rec.setType(cur.getString(cur.getColumnIndex(TYPE)));
+                    rec.setDate(new MTDateRec(cur.getString(cur.getColumnIndex(DTFROM)), cur.getString(cur.getColumnIndex(DTTO))));
+                    rec.setMd5(cur.getString(cur.getColumnIndex(MD5)));
+                    rec.setPeriodicity(cur.getLong(cur.getColumnIndex(PERIODICITY)));
+                    rec.setPoint(new MTPointRec(cur.getDouble(cur.getColumnIndex(POINTLAT)), cur.getDouble(cur.getColumnIndex(POINTLON))));
+                    rec.setRadius(cur.getDouble(cur.getColumnIndex(RADIUS)));
+                    rec.setMax_count(cur.getLong(cur.getColumnIndex(MAXCOUNT)));
+                    rec.setMin_count(cur.getLong(cur.getColumnIndex(MINCOUNT)));
                     rec.setState(cur.getInt(cur.getColumnIndex(STATE)));
                     rec.setPlayed(cur.getInt(cur.getColumnIndex(PLAYED)));
                     list.getPlaylist().add(rec);
@@ -93,6 +124,18 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
                 cv.put(FILENAME, plr.getFilename());
                 cv.put(SIZE, plr.getSize());
                 cv.put(DURATION, plr.getDuration());
+
+                cv.put(TYPE, plr.getType());
+                cv.put(DTFROM, plr.getDate().getFrom());
+                cv.put(DTTO, plr.getDate().getTo());
+                cv.put(MD5, plr.getMd5());
+                cv.put(PERIODICITY, plr.getPeriodicity());
+                cv.put(POINTLAT, plr.getPoint().getX());
+                cv.put(POINTLON, plr.getPoint().getY());
+                cv.put(RADIUS, plr.getRadius());
+                cv.put(MAXCOUNT, plr.getMax_count());
+                cv.put(MINCOUNT, plr.getMin_count());
+
                 cv.put(STATE, plr.getState());
                 cv.put(PLAYED, plr.getPlayed());
                 cv.put(NUMORD, numord);

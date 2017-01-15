@@ -10,9 +10,9 @@ import com.mobile_me.imtv_player.R;
 import com.mobile_me.imtv_player.dao.Dao;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
-import com.mobile_me.imtv_player.ui.IMTVApplication;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
+import com.owncloud.android.lib.resources.files.RemoteFile;
 import com.stericson.rootshell.exceptions.RootDeniedException;
 import com.stericson.rootshell.execution.Command;
 import com.stericson.roottools.RootTools;
@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -41,7 +40,12 @@ public class Updater implements IMTCallbackEvent {
         CustomExceptionHandler.log("Updater created");
     }
 
-    public void startDownLoadUpdate() {
+    public void startGetInfoUpdate() {
+        CustomExceptionHandler.log("Updater start get info");
+        helper.loadFileInfoFromServer();
+    }
+
+    private void startDownLoadUpdate() {
         CustomExceptionHandler.log("Updater start download");
         helper.loadUpdateFromServer();
     }
@@ -227,6 +231,21 @@ public class Updater implements IMTCallbackEvent {
 
     }
 
+    @Override
+    public void onFileInfoLoaded(RemoteFile fileInfo) {
+        // Проверить, есть ли уже такой скачанный файл (по длине)
+        String path = Environment.getExternalStorageDirectory() + "/imtv";
+        File newFile = new File(path, Dao.getInstance(ctx).getRemoteUpdateFilePath());
+        CustomExceptionHandler.log("onFileInfoLoaded check file: exists:"+newFile.exists()+", fileLength="+newFile.length()+", newFileLength="+fileInfo.getLength());
+        if (newFile.exists() && newFile.length() == fileInfo.getLength()) { // TODO: потом сделать по MD5
+            // ничего не делаем, т.к. файлы иентичные
+            CustomExceptionHandler.log("onFileInfoLoaded files are indetical");
+        } else {
+            // Если нету - запустить скачку
+            this.startDownLoadUpdate();
+        }
+    }
+
     private void reLaunchUpdater() {
         if (!Dao.getInstance(ctx).getTerminated()) {
             CustomExceptionHandler.log("reLaunchUpdater next try after " + ctx.getResources().getString(R.string.updateapk_interval_minutes) + " mins");
@@ -234,7 +253,7 @@ public class Updater implements IMTCallbackEvent {
                 @Override
                 public void run() {
                     Thread.setDefaultUncaughtExceptionHandler(CustomExceptionHandler.getLog());
-                    Updater.this.startDownLoadUpdate();
+                    Updater.this.startGetInfoUpdate();
                 }
             }, Integer.parseInt(ctx.getResources().getString(R.string.updateapk_interval_minutes)), TimeUnit.MINUTES);
         }
