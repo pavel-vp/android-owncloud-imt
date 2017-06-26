@@ -85,7 +85,7 @@ public class LogoActivity extends AbstractBaseActivity implements IMTCallbackEve
 
         // обнулим setup
         CustomExceptionHandler.log("clear setup");
-        Dao.getInstance(this).setSetupRec(null); // будем жидать пока не будет заполнен сетап
+        Dao.getInstance(this).setSetupRec(null); // будем ждать пока не будет заполнен сетап
 
         CustomExceptionHandler.log("start settings loader");
         SettingsLoader.getInstace(Dao.getInstance(this)).tryLoadSettings();

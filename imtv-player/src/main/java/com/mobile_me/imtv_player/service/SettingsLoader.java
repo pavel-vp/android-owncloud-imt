@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Класс для работы с регистрацией устройства на сервере и выкачивания глобальных настроек
- * - необходимо периодически проверять наличие файла настроек в Settings/FromCRM/
+ * - необходимо  проверять наличие файла настроек в Settings/FromCRM/  при старте приложения
  * - при удачном скачивании - сохранять локально дату последнего обновления настроек
  *
  * Created by pasha on 31.10.16.
@@ -94,6 +94,8 @@ public class SettingsLoader implements IMTCallbackEvent {
             // отметим время
             dao.setLastTimeSettings(Calendar.getInstance().getTime().getTime());
             dao.setSetupRec(setupRec);
+            StatUpload.getInstance(dao).startUploadStat();
+
             //playList = mapper.readValue(new File(dao.getDownFolder().getAbsolutePath(), dao.getRemotePlayListFilePath()), MTPlayList.class);
         } catch (IOException e) {
             e.printStackTrace();

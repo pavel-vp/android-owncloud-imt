@@ -23,6 +23,7 @@ public class LogUpload implements IMTCallbackEvent {
     Dao dao;
     MTOwnCloudHelper helper;
     SimpleDateFormat sdf;
+    private File lastFile = null;
 
     private static LogUpload instance;
 
@@ -43,6 +44,7 @@ public class LogUpload implements IMTCallbackEvent {
         try {
             // Процесс фоновой загрузки логов на сервер
             CustomExceptionHandler.log("try startUpload");
+            lastFile = null;
 
             String zipPostfix = dao.getDeviceId() + "_" + sdf.format(Calendar.getInstance().getTime());
 
@@ -84,6 +86,7 @@ public class LogUpload implements IMTCallbackEvent {
             // Отправить пожатый файл с логом
             // TODO: отправить все файлы zip в этой директории
             helper.uploadLogToServer(tmpZipFileName, dao.getContext().getResources().getString(R.string.uploadlog_dir));
+            lastFile = tmpFile;
         } catch (Exception e) {
             CustomExceptionHandler.logException("ошибка при отправке лога", e);
         }

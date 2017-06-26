@@ -239,57 +239,89 @@ public class MTPlayListManager {
         CustomExceptionHandler.log("start calc next file");
         // на входе - статистика за последние 30 мин, текущий плейлист с актуальными файлами для проигрывания
         List<MTPlayListRec> statList = dao.getmStatisticDBHelper().readStatOnLastNMins(lastMinutes);
+        MTPlayListRec lastRec = null;
+        if (statList != null && statList.size() > 0) {
+            lastRec = statList.get(statList.size()-1);
+        }
+        CustomExceptionHandler.log("lastRec="+lastRec);
 
         // TODO: GPS
 
         // TODO: логировать данные о сохраненных проигрываниях (на основании чего считаем), и выбранного факта, чтобы потом на основании лога можно было понять почему проигралась эта запись
         CustomExceptionHandler.log("statList.size="+statList.size());
 
-        // КОММЕРЧЕСКОЕ
-        // получим очередь по приоритетам с воспроизведением коммерческого.
-        PriorityQueue<MTCommercialInfo> q =getCommercialPQ(lastMinutes, statList);
-        // выведем очередь в лог
-        CustomExceptionHandler.log("commercial queue=");
-        for (MTCommercialInfo c : q) {
-            CustomExceptionHandler.log("c="+c);
-        }
-        MTCommercialInfo resComm = q.poll();
-        CustomExceptionHandler.log("resComm="+resComm);
-        // Если есть еще что проигрывать в коммерческом
-        if (resComm != null && resComm.priority > 0) {
+try {
+    // КОММЕРЧЕСКОЕ
+    // получим очередь по приоритетам с воспроизведением коммерческого.
+    PriorityQueue<MTCommercialInfo> q = getCommercialPQ(lastMinutes, statList);
+    // выведем очередь в лог
+    CustomExceptionHandler.log("commercial queue=");
+    for (MTCommercialInfo c : q) {
+        CustomExceptionHandler.log("c=" + c);
+    }
+    // пройдемся по очереди в поиске первого неотрицательного, не такого же как последний проигранный
+    MTCommercialInfo resComm = q.poll();
+    while (resComm != null && resComm.priority > 0) {
+        if ((lastRec == null || lastRec.getId().longValue() != resComm.mtPlayListRec.getId().longValue())) {
+            CustomExceptionHandler.log("resComm=" + resComm);
             // проигрываем его
             return resComm.mtPlayListRec;
         }
+        resComm = q.poll();
+    }
 
-        // Нет ничего что проигрывать в коммерческой очереди (либо нет коммерческой вообще)
-        // НЕКОММЕРЧЕСКОЕ
-        // получим очередь по приоритетам для некоммерческого
-        PriorityQueue<MTFreeInfo> qf = getFreePQ(lastMinutes, statList);
-        // выведем очередь в лог
-        CustomExceptionHandler.log("free queue=");
-        for (MTFreeInfo c : qf) {
-            CustomExceptionHandler.log("c="+c);
-        }
-        MTFreeInfo fi = qf.poll();
-        CustomExceptionHandler.log("fi="+fi);
-        // Если есть что-то проигрывать в некоммерческом
-        if (fi != null ) {
+    // Нет ничего что проигрывать в коммерческой очереди (либо нет коммерческой вообще)
+    // НЕКОММЕРЧЕСКОЕ
+    // получим очередь по приоритетам для некоммерческого
+    PriorityQueue<MTFreeInfo> qf = getFreePQ(lastMinutes, statList);
+    // выведем очередь в лог
+    CustomExceptionHandler.log("free queue=");
+    for (MTFreeInfo c : qf) {
+        CustomExceptionHandler.log("c=" + c);
+    }
+    MTFreeInfo fi = qf.poll();
+    // также пройдемся по очереди, выбирая первый не такой же как последний проигранный
+    while (fi != null) {
+        if ((lastRec == null || lastRec.getId().longValue() != fi.mtPlayListRec.getId().longValue())) {
+            CustomExceptionHandler.log("fi=" + fi);
             // проигрываем его
             return fi.mtPlayListRec;
         }
+        fi = qf.poll();
+    }
 
-        CustomExceptionHandler.log("nothing to play");
-        // Нет ничего что надо проигрывать по плану и в некоммерческом.
-        // Если вообще есть что-то в коммерческой очереди
-        if (resComm != null) {
+    CustomExceptionHandler.log("nothing to play");
+    // Нет ничего что надо проигрывать по плану и в некоммерческом.
+    // Если вообще есть что-то в коммерческой очереди
+    q = getCommercialPQ(lastMinutes, statList);
+    // пройдемся по очереди в поиска первого не такого же как последний
+    resComm = q.poll();
+    MTCommercialInfo firstComm = resComm;
+    while (resComm != null) {
+        if ((lastRec == null || lastRec.getId().longValue() != resComm.mtPlayListRec.getId().longValue())) {
+            CustomExceptionHandler.log("resComm=" + resComm);
+            // проигрываем его
             return resComm.mtPlayListRec;
         }
+        resComm = q.poll();
+    }
+    CustomExceptionHandler.log("may be first time play");
+    // если дошли сюда - то просто возьмем первый из коммерческой очереди без всяких условий
+    if (firstComm != null) {
+        CustomExceptionHandler.log("firstComm=" + firstComm);
+        return firstComm.mtPlayListRec;
+    }
+} catch (Exception e) {
+    e.printStackTrace();
+    CustomExceptionHandler.log("exception e="+e.getMessage());
+
+    PriorityQueue<MTCommercialInfo> q = getCommercialPQ(lastMinutes, statList);
+    MTCommercialInfo resComm = q.poll();
+    return resComm.mtPlayListRec;
+
+}
+
         CustomExceptionHandler.log("nothing to play at all");
-        // Если вообще есть что-то в некоммерческой очереди
-        if (fi != null) {
-            return fi.mtPlayListRec;
-        }
-        CustomExceptionHandler.log("nothing to play - bad");
 
         return null; // ничего нет !
     }

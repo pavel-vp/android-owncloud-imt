@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Created by pasha on 20.12.16.
@@ -23,6 +24,7 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
     public static final String TABLE_NAME = "playstatdata";
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddhhmmss");
 
+    private static final String IDX = "idx";
     private static final String ID = "id";
     private static final String DT = "dt";
     private static final String DTDAYHOUR = "dtdayhour";
@@ -30,18 +32,22 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
     private static final String POINT_LAT = "point_lat";
     private static final String POINT_LON = "point_lon";
     private static final String TYPE = "typelist";
+    private static final String EXPORTED = "exported";
 
     Context context;
     public static final String CREATE_TABLE = "create table " + TABLE_NAME + " ( "
+            + IDX + " INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
             + ID + " integer, "
             + DT + " long, "
             + DTDAYHOUR + " long, "
             + DURATION + " int, "
             + POINT_LAT + " double, "
             + POINT_LON + " double, "
-            + TYPE + " text "
+            + TYPE + " text, "
+            + EXPORTED + " int"
             + ");";
 
+    public static final String DROP_TABLE = "drop table "+ TABLE_NAME + ";";
 
     public StatisticDBHelper(Context context) {
         super(context, Dao.DB_NAME, null, Dao.DB_VERSION);
@@ -55,7 +61,14 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
+//        for (int ver = oldVersion; ver<= newVersion; ver++) {
+//            if (ver == 2) {
+        CustomExceptionHandler.log("onUpgrade oldVer:"+oldVersion+", newVersion:"+newVersion);
+                db.execSQL(StatisticDBHelper.DROP_TABLE);
+                db.execSQL(StatisticDBHelper.CREATE_TABLE);
+//            }
+        //}
+        CustomExceptionHandler.log("onUpgrade done");
     }
 
     // Добавляем запись статистики
@@ -110,5 +123,72 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
         return res;
     }
 
+    public void clearExportedStatList(Long lastDTExported) {
+        CustomExceptionHandler.log("start clear until "+lastDTExported);
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("update "+TABLE_NAME+" set "+EXPORTED+"= 1 where "+ DT+" <= ? ", new String[] {String.valueOf(lastDTExported)});
+        CustomExceptionHandler.log("end clear stat");
+    }
 
+    public static class MTStatRec {
+        private Long id;
+        private String dt;
+        private double lat;
+        private double lon;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getDt() {
+            return dt;
+        }
+
+        public void setDt(String dt) {
+            this.dt = dt;
+        }
+
+        public double getLat() {
+            return lat;
+        }
+
+        public void setLat(double lat) {
+            this.lat = lat;
+        }
+
+        public double getLon() {
+            return lon;
+        }
+
+        public void setLon(double lon) {
+            this.lon = lon;
+        }
+    }
+
+    // Метод читает из статистики и возвращает не выгруженные записи ранее
+    public List<MTStatRec> getNotExportedStatList() {
+        CustomExceptionHandler.log("start read stat to log ");
+        SQLiteDatabase db = this.getWritableDatabase();
+        List<MTStatRec> list = new ArrayList<>();
+        Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ EXPORTED + " is null order by " +DT, null);
+        if (cur != null ) {
+            if (cur.moveToFirst()) {
+                do {
+                    MTStatRec rec = new MTStatRec();
+                    rec.setId(cur.getLong(cur.getColumnIndex(ID)));
+                    rec.setDt(cur.getString(cur.getColumnIndex(DT)));
+                    rec.setLat(cur.getDouble(cur.getColumnIndex(POINT_LAT)));
+                    rec.setLon(cur.getDouble(cur.getColumnIndex(POINT_LON)));
+                    list.add(rec);
+                }  while (cur.moveToNext()) ;
+            }
+            cur.close();
+        }
+        CustomExceptionHandler.log("end read stat, list.size = "+list.size());
+      return list;
+    }
 }

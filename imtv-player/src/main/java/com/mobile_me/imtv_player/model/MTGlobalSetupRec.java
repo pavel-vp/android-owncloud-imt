@@ -13,6 +13,7 @@ public class MTGlobalSetupRec implements Serializable {
 
     Long min_count_free; // Минимальное количество воспроизведений некоммерческого видео.
     Long count_days_before; // Число дней до начала воспроизведения видео, за которое необходимо выкачать файл.
+    Long stats_send_time; // Число минут периода для отсылки файла статистики
 
     public Long getMin_count_free() {
         return min_count_free;
@@ -28,5 +29,22 @@ public class MTGlobalSetupRec implements Serializable {
 
     public void setCount_days_before(Long count_days_before) {
         this.count_days_before = count_days_before;
+    }
+
+    public Long getStats_send_time() {
+        return stats_send_time;
+    }
+
+    public void setStats_send_time(Long stats_send_time) {
+        this.stats_send_time = stats_send_time;
+    }
+
+    @Override
+    public String toString() {
+        return "MTGlobalSetupRec{" +
+                "min_count_free=" + min_count_free +
+                ", count_days_before=" + count_days_before +
+                ", stats_send_time=" + stats_send_time +
+                '}';
     }
 }

@@ -101,7 +101,18 @@ public class Updater implements IMTCallbackEvent {
         return res;
     }
 
-    public void installAPKonRooted(String filename, Context ctx) throws Exception {
+    public static void checkVersionAndInstall(File newFile, Context ctx) throws Exception {
+        final PackageManager pm = ctx.getPackageManager();
+        PackageInfo newInfo = pm.getPackageArchiveInfo(newFile.getAbsolutePath(), PackageManager.GET_META_DATA);
+        CustomExceptionHandler.log("Updater newFile version= " + newInfo.versionCode + ", current version=" + BuildConfig.VERSION_CODE);
+        if (newInfo.versionCode != BuildConfig.VERSION_CODE) {
+            CustomExceptionHandler.log("Updater start to update app");
+//                installApk2(newFile.getAbsolutePath());
+            Updater.installAPKonRooted(newFile.getAbsolutePath(), ctx);
+        }
+    }
+
+    public static void installAPKonRooted(String filename, Context ctx) throws Exception {
         File file = new File(filename);
         if (file.exists()) {
                 final String libs = "LD_LIBRARY_PATH=/vendor/lib:/system/lib";
@@ -198,14 +209,7 @@ public class Updater implements IMTCallbackEvent {
             File newFile = new File(path, Dao.getInstance(ctx).getRemoteUpdateFilePath());
             CustomExceptionHandler.log("Updater newFile= " + newFile + " check is need to install");
             // нужно проверить надо ли установить, т.к.  иначе уйдем в бесконечный цикл
-            final PackageManager pm = ctx.getPackageManager();
-            PackageInfo newInfo = pm.getPackageArchiveInfo(newFile.getAbsolutePath(), PackageManager.GET_META_DATA);
-            CustomExceptionHandler.log("Updater newFile version= " + newInfo.versionCode + ", current version=" + BuildConfig.VERSION_CODE);
-            if (newInfo.versionCode != BuildConfig.VERSION_CODE) {
-                CustomExceptionHandler.log("Updater start to update app");
-//                installApk2(newFile.getAbsolutePath());
-                installAPKonRooted(newFile.getAbsolutePath(), this.ctx);
-            }
+            Updater.checkVersionAndInstall(newFile, ctx);
             CustomExceptionHandler.log("Updater finished");
         } catch (Exception e) {
             CustomExceptionHandler.logException("Error updating", e);
@@ -239,7 +243,13 @@ public class Updater implements IMTCallbackEvent {
         CustomExceptionHandler.log("onFileInfoLoaded check file: exists:"+newFile.exists()+", fileLength="+newFile.length()+", newFileLength="+fileInfo.getLength());
         if (newFile.exists() && newFile.length() == fileInfo.getLength()) { // TODO: потом сделать по MD5
             // ничего не делаем, т.к. файлы иентичные
-            CustomExceptionHandler.log("onFileInfoLoaded files are indetical");
+            CustomExceptionHandler.log("onFileInfoLoaded files are identical, try to check version number with current");
+            try {
+                Updater.checkVersionAndInstall(newFile, ctx);
+            } catch (Exception e) {
+                CustomExceptionHandler.logException("Error updating", e);
+                e.printStackTrace();
+            }
         } else {
             // Если нету - запустить скачку
             this.startDownLoadUpdate();

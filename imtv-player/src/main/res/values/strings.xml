@@ -12,6 +12,7 @@
     <string name="video_dir">Videos</string>
     <string name="updateapk_filepath">UpdateApk/imtv-player-release-2.apk</string>
     <string name="uploadlog_dir">UploadLogs</string>
+    <string name="uploadstat_dir">Stats</string>
     <string name="settings_in_filepath">Settings/FromCRM/%s.ini</string>
     <string name="settings_out_filepath">Settings/ToCRM/%s.ini</string>
     <string name="settings_new_filepath">Settings/New/%s.ini</string>

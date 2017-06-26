@@ -34,13 +34,15 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class Dao {
 
-    public final static String DB_NAME = "imtv_db";
-    public final static int DB_VERSION = 1;
+    public final static String DB_NAME = "imtv_player_db";
+    public final static int DB_VERSION = 3;
     public final static String PATH_KEY = "path_key";
     public final static String DEVICEID_KEY = "deviceid_key";
     public final static String LASTTIMESETTINGS_KEY = "lasttimesettings_key";
     public final static String MIN_COUNT_FREE = "min_count_free";
     public final static String COUNT_DAYS_BEFORE = "count_days_before";
+    public final static String STAT_SENT_TIME = "stat_send_time";
+
 
     private static Dao instance;
 
@@ -82,6 +84,7 @@ public class Dao {
         try {
             setupRec.setMin_count_free(this.mSharedPreferences.getLong(MIN_COUNT_FREE, -1));
             setupRec.setCount_days_before(this.mSharedPreferences.getLong(COUNT_DAYS_BEFORE, -1));
+            setupRec.setStats_send_time(this.mSharedPreferences.getLong(STAT_SENT_TIME, 30));
         } catch (Exception e) {
             CustomExceptionHandler.log("no previous setup rec");
         }
@@ -307,7 +310,7 @@ public class Dao {
         } else {
             ed.putString(LASTTIMESETTINGS_KEY, Long.toString(lastTimeSettings));
         }
-        ed.commit();
+        ed.apply();
     }
 
     public ScheduledExecutorService getExecutor() {
@@ -324,11 +327,14 @@ public class Dao {
     }
 
     public void setSetupRec(MTGlobalSetupRec setupRec) {
+        CustomExceptionHandler.log("setupRec try set to= " + setupRec);
         this.setupRec = setupRec;
         SharedPreferences.Editor ed = mSharedPreferences.edit();
-        ed.putString(MIN_COUNT_FREE, setupRec == null ? null : Long.toString(setupRec.getMin_count_free()));
-        ed.putString(COUNT_DAYS_BEFORE, setupRec == null ? null : Long.toString(setupRec.getCount_days_before()));
-        ed.commit();
+        ed.putString(MIN_COUNT_FREE, setupRec == null ? null : Long.toString(setupRec.getMin_count_free() == null ? -1 : setupRec.getMin_count_free()));
+        ed.putString(COUNT_DAYS_BEFORE, setupRec == null ? null : Long.toString(setupRec.getCount_days_before() == null ? -1 : setupRec.getCount_days_before()));
+        ed.putString(STAT_SENT_TIME, setupRec == null ? null : Long.toString(setupRec.getStats_send_time() == null ? 30 : setupRec.getStats_send_time()));
+        ed.apply();
+        CustomExceptionHandler.log("setupRec has set  ");
     }
 
 }
