@@ -4,16 +4,24 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class GuardianLogoActivity extends Activity {
+
+    TextView tvDetail;
+    SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_guardian_logo);
+        tvDetail = (TextView)findViewById(R.id.tvDetail);
 
     }
 
@@ -52,6 +60,9 @@ public class GuardianLogoActivity extends Activity {
                         | Intent.FLAG_ACTIVITY_NEW_TASK
                         | Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
                 startActivity(LaunchIntent);
+                Date now  = Calendar.getInstance().getTime();
+                String s = sdf.format(now);
+                tvDetail.setText("guardian ("+ s + ")");
             }
         }
     }

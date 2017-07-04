@@ -241,7 +241,7 @@ public class MTPlayListManager {
         List<MTPlayListRec> statList = dao.getmStatisticDBHelper().readStatOnLastNMins(lastMinutes);
         MTPlayListRec lastRec = null;
         if (statList != null && statList.size() > 0) {
-            lastRec = statList.get(statList.size()-1);
+            lastRec = statList.get(0);
         }
         CustomExceptionHandler.log("lastRec="+lastRec);
 
@@ -256,9 +256,9 @@ try {
     PriorityQueue<MTCommercialInfo> q = getCommercialPQ(lastMinutes, statList);
     // выведем очередь в лог
     CustomExceptionHandler.log("commercial queue=");
-    for (MTCommercialInfo c : q) {
+    /*for (MTCommercialInfo c : q) {
         CustomExceptionHandler.log("c=" + c);
-    }
+    }*/
     // пройдемся по очереди в поиске первого неотрицательного, не такого же как последний проигранный
     MTCommercialInfo resComm = q.poll();
     while (resComm != null && resComm.priority > 0) {

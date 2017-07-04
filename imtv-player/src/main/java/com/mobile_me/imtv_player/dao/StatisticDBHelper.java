@@ -7,14 +7,14 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Location;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.zip.ZipOutputStream;
+import java.util.*;
+import java.util.concurrent.Exchanger;
 
 /**
  * Created by pasha on 20.12.16.
@@ -53,10 +53,31 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
         super(context, Dao.DB_NAME, null, Dao.DB_VERSION);
     }
 
+
+    PriorityQueue<MTPlayListRec> queueStat = new PriorityQueue<>(1000, new Comparator<MTPlayListRec>() {
+        @Override
+        public int compare(MTPlayListRec lhs, MTPlayListRec rhs) {
+            if (lhs.getIdx() > rhs.getIdx()) return -1;
+            if (lhs.getIdx() < rhs.getIdx()) return 1;
+            return 0;
+        }
+    });
+    private long idx = 1;
+
+
+
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(StatisticDBHelper.CREATE_TABLE);
-        db.execSQL(PlayListDBHelper.CREATE_TABLE);
+        try {
+            db.execSQL(StatisticDBHelper.CREATE_TABLE);
+        } catch (Exception e) {
+            CustomExceptionHandler.logException("error ", e);
+        }
+        try {
+            db.execSQL(PlayListDBHelper.CREATE_TABLE);
+        } catch (Exception e) {
+            CustomExceptionHandler.logException("error ", e);
+        }
     }
 
     @Override
@@ -72,14 +93,29 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
     }
 
     // Добавляем запись статистики
-    public void addStat(MTPlayListRec recExt, Location loc) {
-        CustomExceptionHandler.log("write stat  recExt="+recExt);
+    public void addStat(MTPlayListRec recExt, final Location loc) {
+        final MTPlayListRec copy = recExt.getCopy();
+
+        idx++;
+        copy.setIdx(idx);
+        CustomExceptionHandler.log("write stat  recExt="+copy);
+        queueStat.add(copy);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                writeStatRecInDBBackgroud(copy, loc);
+            }
+        }).start();
+        CustomExceptionHandler.log("write stat rec end ");
+    }
+
+    protected synchronized void writeStatRecInDBBackgroud(MTPlayListRec copy, Location loc) {
         try {
             SQLiteDatabase db = this.getWritableDatabase();
 
             ContentValues cv = new ContentValues();
-            cv.put(ID, recExt.getId());
-            cv.put(DURATION, recExt.getDuration());
+            cv.put(ID, copy.getId());
+            cv.put(DURATION, copy.getDuration());
             Calendar cal = Calendar.getInstance();
             cv.put(DT, cal.getTimeInMillis());
             cv.put(DTDAYHOUR, Long.parseLong(sdf.format(cal.getTime())));
@@ -87,13 +123,26 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
                 cv.put(POINT_LAT, loc.getLatitude());
                 cv.put(POINT_LON, loc.getLatitude());
             }
-            cv.put(TYPE, recExt.getType());
+            cv.put(TYPE, copy.getType());
             db.insert(TABLE_NAME, null, cv);
         } catch (Exception e) {
             CustomExceptionHandler.logException("write stat rec error ", e);
             e.printStackTrace();
         }
-        CustomExceptionHandler.log("write stat rec end ");
+    }
+
+    public void deleteOldData() {
+        CustomExceptionHandler.log("start delete olddata");
+        SQLiteDatabase db = this.getWritableDatabase();
+        try {
+            db.execSQL(StatisticDBHelper.DROP_TABLE);
+        } catch (Exception e) {
+            CustomExceptionHandler.logException("error data", e);
+        }
+        db.execSQL(StatisticDBHelper.CREATE_TABLE);
+//        db.execSQL("truncate table "+ TABLE_NAME + " ");
+//        db.execSQL("delete from "+ TABLE_NAME + " where " + ID + " < (select min("+ID+" from (select "+ID+" from " + TABLE_NAME + " order by "+ ID + " ASC LIMIT 1000))");
+        CustomExceptionHandler.log("end delete olddata");
     }
 
     // Метод для получения данных из статистики:
@@ -102,9 +151,28 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
         // попробовать прочитать локально сохраненный плейлист.
         CustomExceptionHandler.log("start read last minutes: "+ lastMinutes);
         long timeStart = Calendar.getInstance().getTimeInMillis() - (lastMinutes * 60 * 1000);
+        CustomExceptionHandler.log("timeStart= "+timeStart);
         List<MTPlayListRec> res = new ArrayList<>();
+
+
+        PriorityQueue<MTPlayListRec> queueCopy = new PriorityQueue<>(queueStat);
+        boolean needNext = true;
+        while (needNext) {
+            needNext = false;
+            MTPlayListRec rec = queueCopy.poll();
+            if (rec != null) {
+                res.add(rec);
+//                CustomExceptionHandler.log("statrec="+rec);
+                if (res.size() < 100) {
+                    needNext = true;
+                }
+            }
+        }
+
+
+/*
         SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ DT + " >= ?  order by " + DT, new String[] { String.valueOf(timeStart)});
+        Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ DT + " >= ?  order by " + IDX +" DESC LIMIT 100", new String[] { String.valueOf(timeStart)});
         if (cur != null ) {
             if (cur.moveToFirst()) {
                 do {
@@ -119,18 +187,21 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
             }
             cur.close();
         }
+        */
         CustomExceptionHandler.log("end read ");
         return res;
     }
 
-    public void clearExportedStatList(Long lastDTExported) {
-        CustomExceptionHandler.log("start clear until "+lastDTExported);
+    public void clearExportedStatList(Long lastIDExported) {
+        CustomExceptionHandler.log("start clear until "+lastIDExported);
         SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("update "+TABLE_NAME+" set "+EXPORTED+"= 1 where "+ DT+" <= ? ", new String[] {String.valueOf(lastDTExported)});
+        db.execSQL("update "+TABLE_NAME+" set "+EXPORTED+"= 1 where "+ IDX+" <= ? ", new String[] {String.valueOf(lastIDExported)});
         CustomExceptionHandler.log("end clear stat");
     }
 
-    public static class MTStatRec {
+    public static class MTStatRec implements Serializable {
+        @JsonIgnore
+        private Long idx;
         private Long id;
         private String dt;
         private double lat;
@@ -167,6 +238,14 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
         public void setLon(double lon) {
             this.lon = lon;
         }
+
+        public Long getIdx() {
+            return idx;
+        }
+
+        public void setIdx(Long idx) {
+            this.idx = idx;
+        }
     }
 
     // Метод читает из статистики и возвращает не выгруженные записи ранее
@@ -174,11 +253,12 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
         CustomExceptionHandler.log("start read stat to log ");
         SQLiteDatabase db = this.getWritableDatabase();
         List<MTStatRec> list = new ArrayList<>();
-        Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ EXPORTED + " is null order by " +DT, null);
+        Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ EXPORTED + " is null order by " +IDX, null);
         if (cur != null ) {
             if (cur.moveToFirst()) {
                 do {
                     MTStatRec rec = new MTStatRec();
+                    rec.setIdx(cur.getLong(cur.getColumnIndex(IDX)));
                     rec.setId(cur.getLong(cur.getColumnIndex(ID)));
                     rec.setDt(cur.getString(cur.getColumnIndex(DT)));
                     rec.setLat(cur.getDouble(cur.getColumnIndex(POINT_LAT)));

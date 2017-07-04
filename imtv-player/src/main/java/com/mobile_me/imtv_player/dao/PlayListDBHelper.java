@@ -69,8 +69,16 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(StatisticDBHelper.CREATE_TABLE);
-        db.execSQL(PlayListDBHelper.CREATE_TABLE);
+        try {
+            db.execSQL(StatisticDBHelper.CREATE_TABLE);
+        } catch (Exception e) {
+            CustomExceptionHandler.logException("error ", e);
+        }
+        try {
+            db.execSQL(PlayListDBHelper.CREATE_TABLE);
+        } catch (Exception e) {
+            CustomExceptionHandler.logException("error ", e);
+        }
     }
 
     @Override
@@ -85,6 +93,14 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ UPDATED + " = ? and " + TYPEPLAYLIST + " = ? order by " + NUMORD, new String[] { String.valueOf(1), String.valueOf(typePlayList)});
         if (cur != null ) {
+            CustomExceptionHandler.log("cur.getCount() "+ cur.getCount());
+            if (cur.getCount() == 0)  {
+                cur.close();
+                // в случае если по какой-то причине 0 записей - прочитаем все, даже сброшенные (потом сбросятся при скачивании плейлиста)
+                cur = db.rawQuery("select * from "+ TABLE_NAME + " where  " + TYPEPLAYLIST + " = ? order by " + NUMORD, new String[] { String.valueOf(typePlayList)});
+                CustomExceptionHandler.log("cur2.getCount() "+ cur.getCount());
+            }
+
             if (cur.moveToFirst()) {
                 do {
                     MTPlayListRec rec = new MTPlayListRec();
@@ -111,7 +127,17 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
         return list;
     }
 
-    public void updatePlayList(MTPlayList playList) {
+    public void updatePlayList(final MTPlayList playList) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                updatePlayListInBackground(playList);
+            }
+        }).start();
+    }
+
+
+    protected synchronized void updatePlayListInBackground(MTPlayList playList) {
         int typePlayList = playList.getTypePlayList();
         CustomExceptionHandler.log("write playList = "+ playList);
         try {

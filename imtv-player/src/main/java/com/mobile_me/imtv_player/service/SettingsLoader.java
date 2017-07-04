@@ -100,8 +100,8 @@ public class SettingsLoader implements IMTCallbackEvent {
         } catch (IOException e) {
             e.printStackTrace();
             CustomExceptionHandler.logException("settings convert error ", e);
-            reLaunchSettingLoader();
         }
+        reLaunchSettingLoader();
     }
 
     @Override

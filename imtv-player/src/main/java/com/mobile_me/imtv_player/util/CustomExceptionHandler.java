@@ -246,6 +246,7 @@ public class CustomExceptionHandler implements UncaughtExceptionHandler
 
 
     public static void log(String msg) {
+        //Log.d("IMTV",msg);
         CustomExceptionHandler.getLog().Log(CustomExceptionHandler.TLogLevel.Critical, msg);
     }
 

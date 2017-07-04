@@ -64,7 +64,7 @@ public class Dao {
     private MTPlayListManager playListManager2;
     private Boolean isTerminated = false;
     private Long lastTimeSettings = null;
-    private MTGlobalSetupRec setupRec;
+    private MTGlobalSetupRec setupRec = null;
 
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
@@ -80,14 +80,21 @@ public class Dao {
         this.mPlayListDBHelper = new PlayListDBHelper(this.ctx);
         this.mStatisticDBHelper = new StatisticDBHelper(this.ctx);
         this.mSharedPreferences = ctx.getSharedPreferences("settings", Activity.MODE_PRIVATE);
-        this.setupRec = new MTGlobalSetupRec();
+        MTGlobalSetupRec r = new MTGlobalSetupRec();
+        CustomExceptionHandler.log("try load previous setup rec");
         try {
-            setupRec.setMin_count_free(this.mSharedPreferences.getLong(MIN_COUNT_FREE, -1));
-            setupRec.setCount_days_before(this.mSharedPreferences.getLong(COUNT_DAYS_BEFORE, -1));
-            setupRec.setStats_send_time(this.mSharedPreferences.getLong(STAT_SENT_TIME, 30));
+            r.setMin_count_free(this.mSharedPreferences.getLong(MIN_COUNT_FREE, -1));
+            r.setCount_days_before(this.mSharedPreferences.getLong(COUNT_DAYS_BEFORE, -1));
+            r.setStats_send_time(this.mSharedPreferences.getLong(STAT_SENT_TIME, 30));
+            this.setupRec = r;
+            CustomExceptionHandler.log("setup rec:"+r);
         } catch (Exception e) {
-            CustomExceptionHandler.log("no previous setup rec");
+            e.printStackTrace();
+            CustomExceptionHandler.logException("no previous setup rec", e);
+//            CustomExceptionHandler.log();
         }
+
+        this.mStatisticDBHelper.deleteOldData();
 
 /*        TelephonyManager telephonyManager = (TelephonyManager)ctx.getSystemService(Context.TELEPHONY_SERVICE);
         deviceId = telephonyManager.getDeviceId();
@@ -126,6 +133,16 @@ public class Dao {
 
         CustomExceptionHandler.log("lastTimeSettings:"+lastTimeSettings);
         CustomExceptionHandler.log("is device rooted="+ RootUtils.isDeviceRooted());
+
+        Calendar cal = Calendar.getInstance();
+        Date timeNow = cal.getTime();
+        CustomExceptionHandler.log("timeNow:"+timeNow +",timeNowMS="+timeNow.getTime()+",timeNow.getYear()="+timeNow.getYear());
+        if (timeNow.getYear() == 70) {
+//            CustomExceptionHandler.log("exiting");
+//            System.exit(0);
+        }
+
+
 //        downFolder = act.getExternalFilesDir(act.getString(R.string.download_folder_path));
         downFolder = definePathToVideo();
         downFolder.mkdir();
@@ -330,9 +347,9 @@ public class Dao {
         CustomExceptionHandler.log("setupRec try set to= " + setupRec);
         this.setupRec = setupRec;
         SharedPreferences.Editor ed = mSharedPreferences.edit();
-        ed.putString(MIN_COUNT_FREE, setupRec == null ? null : Long.toString(setupRec.getMin_count_free() == null ? -1 : setupRec.getMin_count_free()));
-        ed.putString(COUNT_DAYS_BEFORE, setupRec == null ? null : Long.toString(setupRec.getCount_days_before() == null ? -1 : setupRec.getCount_days_before()));
-        ed.putString(STAT_SENT_TIME, setupRec == null ? null : Long.toString(setupRec.getStats_send_time() == null ? 30 : setupRec.getStats_send_time()));
+        ed.putLong(MIN_COUNT_FREE, (setupRec == null) ? -1 : setupRec.getMin_count_free() == null ? -1 : setupRec.getMin_count_free());
+        ed.putLong(COUNT_DAYS_BEFORE, (setupRec == null) ? -1 : setupRec.getCount_days_before() == null ? -1 : setupRec.getCount_days_before());
+        ed.putLong(STAT_SENT_TIME, (setupRec == null) ? -1 : setupRec.getStats_send_time() == null ? 30 : setupRec.getStats_send_time());
         ed.apply();
         CustomExceptionHandler.log("setupRec has set  ");
     }

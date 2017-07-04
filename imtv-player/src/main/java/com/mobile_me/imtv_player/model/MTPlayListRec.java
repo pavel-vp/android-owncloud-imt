@@ -23,6 +23,7 @@ public class MTPlayListRec implements Serializable {
     public static final int PLAYED_YES = 1;
 
     // Общее
+    private Long idx;
     private Long id;
     private String filename; // ИмяФайла
     private Long duration = Long.valueOf(0); // Время ролика: 23сек.
@@ -42,6 +43,14 @@ public class MTPlayListRec implements Serializable {
 
     private transient int state = STATE_UNKNOWN;
     private transient int played = PLAYED_NO;
+
+    public Long getIdx() {
+        return idx;
+    }
+
+    public void setIdx(Long idx) {
+        this.idx = idx;
+    }
 
     public Long getId() {
         return id;
@@ -161,11 +170,30 @@ public class MTPlayListRec implements Serializable {
     public String toString() {
         return "MTPlayListRec{" +
                 "type='" + type + '\'' +
+                ", idx=" + idx +
                 ", id=" + id +
                 ", filename='" + filename + '\'' +
                 ", duration=" + duration +
                 ", size=" + size +
                 '}';
+    }
+
+    public MTPlayListRec getCopy() {
+        MTPlayListRec copy = new MTPlayListRec();
+        copy.setIdx(this.idx);
+        copy.setId(this.id);
+        copy.setFilename(this.filename);
+        copy.setDuration(this.duration);
+        copy.setSize(this.size);
+        copy.setType(this.type);
+        copy.setDate(this.date);
+        copy.setMd5(this.md5);
+        copy.setPeriodicity(this.periodicity);
+        copy.setPoint(this.point);
+        copy.setRadius(this.radius);
+        copy.setMax_count(this.max_count);
+        copy.setMin_count(this.min_count);
+        return copy;
     }
 
 }
