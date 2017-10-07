@@ -104,7 +104,14 @@ public class MTLoaderManager implements IMTCallbackEvent {
 
     @Override
     public void onError(int mode, MTOwnCloudHelper ownCloudHelper, RemoteOperationResult result) {
-      // тут ничего не делаем... запустится сам по тамеру в следующий раз
+        // тут ничего не делаем... запустится сам по тамеру в следующий раз
+        CustomExceptionHandler.log("onVideoFileLoaded failed.");
+        if (result != null) {
+            CustomExceptionHandler.log("result =" +result);
+            if (result.getException() != null) {
+                CustomExceptionHandler.log("result.getException=" +result.getException());
+            }
+        }
     }
 
     @Override
