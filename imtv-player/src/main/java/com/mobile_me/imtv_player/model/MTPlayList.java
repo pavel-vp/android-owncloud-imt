@@ -43,4 +43,11 @@ public class MTPlayList implements Serializable {
         this.typePlayList = typePlayList;
     }
 
+    @Override
+    public String toString() {
+        return "MTPlayList{" +
+                "typePlayList=" + typePlayList +
+                ", playlist=" + playlist +
+                '}';
+    }
 }

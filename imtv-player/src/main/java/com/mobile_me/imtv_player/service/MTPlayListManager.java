@@ -255,7 +255,7 @@ try {
     // получим очередь по приоритетам с воспроизведением коммерческого.
     PriorityQueue<MTCommercialInfo> q = getCommercialPQ(lastMinutes, statList);
     // выведем очередь в лог
-    CustomExceptionHandler.log("commercial queue=");
+    CustomExceptionHandler.log("commercial queue="+q.size());
     /*for (MTCommercialInfo c : q) {
         CustomExceptionHandler.log("c=" + c);
     }*/
@@ -275,10 +275,10 @@ try {
     // получим очередь по приоритетам для некоммерческого
     PriorityQueue<MTFreeInfo> qf = getFreePQ(lastMinutes, statList);
     // выведем очередь в лог
-    CustomExceptionHandler.log("free queue=");
-    for (MTFreeInfo c : qf) {
+    CustomExceptionHandler.log("free queue="+qf.size());
+    /*for (MTFreeInfo c : qf) {
         CustomExceptionHandler.log("c=" + c);
-    }
+    }*/
     MTFreeInfo fi = qf.poll();
     // также пройдемся по очереди, выбирая первый не такой же как последний проигранный
     while (fi != null) {
@@ -375,14 +375,12 @@ try {
     }
 
     public MTPlayListRec getNextFileToLoad() {
+        CustomExceptionHandler.log("getNextFileToLoad start");
         MTPlayListRec fileToLoad = null;
         synchronized (playList) {
-                String firstVideoFile = null;
+                List<MTPlayListRec> filesToLoad  = new ArrayList<>();
                 // по списку файлов пройтись и сравнить их с текущими. Если различаюься - поставить флаг необходимости скачивания
                 for (MTPlayListRec f : playList.getPlaylist()) {
-                    if (firstVideoFile == null) {
-                        firstVideoFile = f.getFilename();
-                    }
                     // прочитать локальные данные файла
                     File finfo = new File(dao.getDownVideoFolder(), f.getFilename());
                     //log("loadVideoFileFromPlayList check file info for = "+finfo.getAbsolutePath());
@@ -391,22 +389,20 @@ try {
                        // log("loadVideoFileFromPlayList file state uptodate");
                     } else {
                         f.setState(MTPlayListRec.STATE_NEED_LOAD);
-                        if (fileToLoad == null) {
-                            fileToLoad = f;
-                        }
+                        filesToLoad.add(f);
                         //log("loadVideoFileFromPlayList file state need load");
                     }
                 }
-                // запустить реальное скачивание первого файла
-                if (fileToLoad != null) {
-                    //log("loadVideoFileFromPlayList fileToLoad="+fileToLoad.getFilename());
+                // Получим массив для загрузки. Из него случайным образом выберем файл для загрузки
+                CustomExceptionHandler.log("getNextFileToLoad filesToLoad="+filesToLoad);
+                if (filesToLoad.size() > 0) {
+                    int idx = (int)(Math.random() * filesToLoad.size());
+                    CustomExceptionHandler.log("getNextFileToLoad idx="+idx);
+                    if (idx <0) { idx = 0; }
+                    // запустить реальное скачивание первого файла
+                    fileToLoad = filesToLoad.get(idx);
                     fileToLoad.setState(MTPlayListRec.STATE_LOADING);
-                    //log("loadVideoFileFromPlayList downloadOperation.executed");
-                } else {
-                    // все ок, ничего больше не скачиваем
-                    //Toast.makeText(ctx,"Все файлы актуальны.", Toast.LENGTH_SHORT).show();
-                    //log("loadVideoFileFromPlayList Все файлы актуальны, пробуем запустить первый");
-                    //cb.playNextVideoFile();
+                    CustomExceptionHandler.log("getNextFileToLoad fileToLoad="+fileToLoad.getFilename());
                 }
         }
         CustomExceptionHandler.log("getNextFileToLoad file="+fileToLoad);

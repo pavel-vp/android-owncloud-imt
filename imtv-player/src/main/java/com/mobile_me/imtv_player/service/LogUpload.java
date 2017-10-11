@@ -8,12 +8,8 @@ import com.mobile_me.imtv_player.util.CustomExceptionHandler;
         import com.owncloud.android.lib.common.operations.RemoteOperationResult;
 import com.owncloud.android.lib.resources.files.RemoteFile;
 
-import java.io.BufferedInputStream;
-        import java.io.BufferedOutputStream;
-        import java.io.File;
-        import java.io.FileInputStream;
-        import java.io.FileOutputStream;
-        import java.text.SimpleDateFormat;
+import java.io.*;
+import java.text.SimpleDateFormat;
         import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
         import java.util.zip.ZipEntry;
@@ -40,7 +36,7 @@ public class LogUpload implements IMTCallbackEvent {
         sdf = new SimpleDateFormat("yyMMdd-HHmmss");
     }
 
-    public void startUpload() {
+    public synchronized void startUpload() {
         try {
             // Процесс фоновой загрузки логов на сервер
             CustomExceptionHandler.log("try startUpload");
@@ -62,7 +58,7 @@ public class LogUpload implements IMTCallbackEvent {
             zos.putNextEntry(e);
 
             CustomExceptionHandler.log("start write");
-            CustomExceptionHandler.log("send file=" + tmpZipFileName);
+            CustomExceptionHandler.log("sending new file=" + tmpZipFileName);
 
             // переключить на временный файл
             String logFileNameTmp = CustomExceptionHandler.getLog().switchToNewFile();
@@ -83,13 +79,33 @@ public class LogUpload implements IMTCallbackEvent {
             // Удалить файл временный
             logFile.delete();
 
-            // Отправить пожатый файл с логом
-            // TODO: отправить все файлы zip в этой директории
-            helper.uploadLogToServer(tmpZipFileName, dao.getContext().getResources().getString(R.string.uploadlog_dir));
             lastFile = tmpFile;
+            trySendFile();
         } catch (Exception e) {
             CustomExceptionHandler.logException("ошибка при отправке лога", e);
         }
+    }
+
+    private synchronized void trySendFile() {
+        // Отправить пожатый файл с логом
+        // отправить первый файлы zip в этой директории
+        File[] fm = getAllZipFiles(lastFile.getParent());
+        if (fm != null && fm.length > 0) {
+            CustomExceptionHandler.log("try upload errorlog="+fm[0].getAbsolutePath());
+            helper.uploadLogToServer(fm[0].getAbsolutePath(), dao.getContext().getResources().getString(R.string.uploadlog_dir));
+        } else {
+            CustomExceptionHandler.log("no more zip files to upload");
+        }
+    }
+
+    private File[] getAllZipFiles( String dirName){
+        File dir = new File(dirName);
+
+        return dir.listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String filename)
+            { return filename.endsWith(".zip"); }
+        } );
+
     }
 
     @Override
@@ -109,7 +125,8 @@ public class LogUpload implements IMTCallbackEvent {
 
     @Override
     public void onError(int mode, MTOwnCloudHelper ownCloudHelper, RemoteOperationResult result) {
-        reLaunchUploadLog();
+        CustomExceptionHandler.log("on sent zip file error = "+result);
+       // trySendFile();
     }
 
     @Override
@@ -117,9 +134,7 @@ public class LogUpload implements IMTCallbackEvent {
         CustomExceptionHandler.log("sent = "+localFileToUpload);
         File tmpFile = new File(localFileToUpload);
         tmpFile.delete();
-        // заново поставить задание на отсылку лога
-        reLaunchUploadLog();
-
+        trySendFile();
     }
 
     @Override
@@ -133,15 +148,20 @@ public class LogUpload implements IMTCallbackEvent {
     }
 
     public void reLaunchUploadLog() {
-        if (!dao.getTerminated()) {
-            CustomExceptionHandler.log("Relaunch upload log");
-            dao.getExecutor().schedule(new Runnable() {
-                @Override
-                public void run() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (!dao.getTerminated()) {
+                    CustomExceptionHandler.log("Relaunch upload log");
                     LogUpload.this.startUpload();
+                    try {
+                        Thread.sleep(Integer.parseInt(dao.getContext().getResources().getString(R.string.uploadlogs_interval_minutes)) * 1000 * 60);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }, Integer.parseInt(dao.getContext().getResources().getString(R.string.uploadlogs_interval_minutes)), TimeUnit.MINUTES);
-        }
+            }
+        }).start();
     }
 
 }

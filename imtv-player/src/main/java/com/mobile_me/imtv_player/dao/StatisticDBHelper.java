@@ -51,6 +51,7 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
 
     public StatisticDBHelper(Context context) {
         super(context, Dao.DB_NAME, null, Dao.DB_VERSION);
+        this.context = context;
     }
 
 
@@ -103,31 +104,34 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
         new Thread(new Runnable() {
             @Override
             public void run() {
+
                 writeStatRecInDBBackgroud(copy, loc);
             }
         }).start();
         CustomExceptionHandler.log("write stat rec end ");
     }
 
-    protected synchronized void writeStatRecInDBBackgroud(MTPlayListRec copy, Location loc) {
-        try {
-            SQLiteDatabase db = this.getWritableDatabase();
+    protected void writeStatRecInDBBackgroud(MTPlayListRec copy, Location loc) {
+        synchronized (Dao.getInstance(context)) {
+            try {
+                SQLiteDatabase db = this.getWritableDatabase();
 
-            ContentValues cv = new ContentValues();
-            cv.put(ID, copy.getId());
-            cv.put(DURATION, copy.getDuration());
-            Calendar cal = Calendar.getInstance();
-            cv.put(DT, cal.getTimeInMillis());
-            cv.put(DTDAYHOUR, Long.parseLong(sdf.format(cal.getTime())));
-            if (loc != null) {
-                cv.put(POINT_LAT, loc.getLatitude());
-                cv.put(POINT_LON, loc.getLatitude());
+                ContentValues cv = new ContentValues();
+                cv.put(ID, copy.getId());
+                cv.put(DURATION, copy.getDuration());
+                Calendar cal = Calendar.getInstance();
+                cv.put(DT, cal.getTimeInMillis());
+                cv.put(DTDAYHOUR, Long.parseLong(sdf.format(cal.getTime())));
+                if (loc != null) {
+                    cv.put(POINT_LAT, loc.getLatitude());
+                    cv.put(POINT_LON, loc.getLatitude());
+                }
+                cv.put(TYPE, copy.getType());
+                db.insert(TABLE_NAME, null, cv);
+            } catch (Exception e) {
+                CustomExceptionHandler.logException("write stat rec error ", e);
+                e.printStackTrace();
             }
-            cv.put(TYPE, copy.getType());
-            db.insert(TABLE_NAME, null, cv);
-        } catch (Exception e) {
-            CustomExceptionHandler.logException("write stat rec error ", e);
-            e.printStackTrace();
         }
     }
 
@@ -193,10 +197,12 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
     }
 
     public void clearExportedStatList(Long lastIDExported) {
-        CustomExceptionHandler.log("start clear until "+lastIDExported);
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("update "+TABLE_NAME+" set "+EXPORTED+"= 1 where "+ IDX+" <= ? ", new String[] {String.valueOf(lastIDExported)});
-        CustomExceptionHandler.log("end clear stat");
+        synchronized (Dao.getInstance(context)) {
+            CustomExceptionHandler.log("start clear until " + lastIDExported);
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.execSQL("update " + TABLE_NAME + " set " + EXPORTED + "= 1 where " + IDX + " <= ? ", new String[]{String.valueOf(lastIDExported)});
+            CustomExceptionHandler.log("end clear stat");
+        }
     }
 
     public static class MTStatRec implements Serializable {
@@ -250,25 +256,25 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
 
     // Метод читает из статистики и возвращает не выгруженные записи ранее
     public List<MTStatRec> getNotExportedStatList() {
-        CustomExceptionHandler.log("start read stat to log ");
-        SQLiteDatabase db = this.getWritableDatabase();
-        List<MTStatRec> list = new ArrayList<>();
-        Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ EXPORTED + " is null order by " +IDX, null);
-        if (cur != null ) {
-            if (cur.moveToFirst()) {
-                do {
-                    MTStatRec rec = new MTStatRec();
-                    rec.setIdx(cur.getLong(cur.getColumnIndex(IDX)));
-                    rec.setId(cur.getLong(cur.getColumnIndex(ID)));
-                    rec.setDt(cur.getString(cur.getColumnIndex(DT)));
-                    rec.setLat(cur.getDouble(cur.getColumnIndex(POINT_LAT)));
-                    rec.setLon(cur.getDouble(cur.getColumnIndex(POINT_LON)));
-                    list.add(rec);
-                }  while (cur.moveToNext()) ;
+            CustomExceptionHandler.log("start read stat to log ");
+            SQLiteDatabase db = this.getReadableDatabase();
+            List<MTStatRec> list = new ArrayList<>();
+            Cursor cur = db.rawQuery("select * from " + TABLE_NAME + " where " + EXPORTED + " is null order by " + IDX, null);
+            if (cur != null) {
+                if (cur.moveToFirst()) {
+                    do {
+                        MTStatRec rec = new MTStatRec();
+                        rec.setIdx(cur.getLong(cur.getColumnIndex(IDX)));
+                        rec.setId(cur.getLong(cur.getColumnIndex(ID)));
+                        rec.setDt(cur.getString(cur.getColumnIndex(DT)));
+                        rec.setLat(cur.getDouble(cur.getColumnIndex(POINT_LAT)));
+                        rec.setLon(cur.getDouble(cur.getColumnIndex(POINT_LON)));
+                        list.add(rec);
+                    } while (cur.moveToNext());
+                }
+                cur.close();
             }
-            cur.close();
-        }
-        CustomExceptionHandler.log("end read stat, list.size = "+list.size());
-      return list;
+            CustomExceptionHandler.log("end read stat, list.size = " + list.size());
+            return list;
     }
 }

@@ -65,6 +65,7 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
 
     public PlayListDBHelper(Context context) {
         super(context, Dao.DB_NAME, null, Dao.DB_VERSION);
+        this.context = context;
     }
 
     @Override
@@ -90,7 +91,7 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
         // попробовать прочитать локально сохраненный плейлист.
         CustomExceptionHandler.log("start read "+ typePlayList);
         MTPlayList list = new MTPlayList();
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         Cursor cur = db.rawQuery("select * from "+ TABLE_NAME + " where "+ UPDATED + " = ? and " + TYPEPLAYLIST + " = ? order by " + NUMORD, new String[] { String.valueOf(1), String.valueOf(typePlayList)});
         if (cur != null ) {
             CustomExceptionHandler.log("cur.getCount() "+ cur.getCount());
@@ -137,53 +138,55 @@ public class PlayListDBHelper extends SQLiteOpenHelper {
     }
 
 
-    protected synchronized void updatePlayListInBackground(MTPlayList playList) {
-        int typePlayList = playList.getTypePlayList();
-        CustomExceptionHandler.log("write playList = "+ playList);
-        try {
-            SQLiteDatabase db = this.getWritableDatabase();
-            db.execSQL("update " + TABLE_NAME + " set " + UPDATED + " = 0 where "+TYPEPLAYLIST+" ="+typePlayList);
-            int numord = 1;
-            for (MTPlayListRec plr : playList.getPlaylist()) {
-                ContentValues cv = new ContentValues();
-                cv.put(ID, plr.getId());
-                cv.put(FILENAME, plr.getFilename());
-                cv.put(SIZE, plr.getSize());
-                cv.put(DURATION, plr.getDuration());
+    protected void updatePlayListInBackground(MTPlayList playList) {
+        synchronized (Dao.getInstance(context)) {
+            int typePlayList = playList.getTypePlayList();
+            CustomExceptionHandler.log("write playList = " + playList);
+            try {
+                SQLiteDatabase db = this.getWritableDatabase();
+                db.execSQL("update " + TABLE_NAME + " set " + UPDATED + " = 0 where " + TYPEPLAYLIST + " =" + typePlayList);
+                int numord = 1;
+                for (MTPlayListRec plr : playList.getPlaylist()) {
+                    ContentValues cv = new ContentValues();
+                    cv.put(ID, plr.getId());
+                    cv.put(FILENAME, plr.getFilename());
+                    cv.put(SIZE, plr.getSize());
+                    cv.put(DURATION, plr.getDuration());
 
-                cv.put(TYPE, plr.getType());
-                cv.put(DTFROM, plr.getDate().getFrom());
-                cv.put(DTTO, plr.getDate().getTo());
-                cv.put(MD5, plr.getMd5());
-                cv.put(PERIODICITY, plr.getPeriodicity());
-                cv.put(POINTLAT, plr.getPoint().getX());
-                cv.put(POINTLON, plr.getPoint().getY());
-                cv.put(RADIUS, plr.getRadius());
-                cv.put(MAXCOUNT, plr.getMax_count());
-                cv.put(MINCOUNT, plr.getMin_count());
+                    cv.put(TYPE, plr.getType());
+                    cv.put(DTFROM, plr.getDate().getFrom());
+                    cv.put(DTTO, plr.getDate().getTo());
+                    cv.put(MD5, plr.getMd5());
+                    cv.put(PERIODICITY, plr.getPeriodicity());
+                    cv.put(POINTLAT, plr.getPoint().getX());
+                    cv.put(POINTLON, plr.getPoint().getY());
+                    cv.put(RADIUS, plr.getRadius());
+                    cv.put(MAXCOUNT, plr.getMax_count());
+                    cv.put(MINCOUNT, plr.getMin_count());
 
-                cv.put(STATE, plr.getState());
-                cv.put(PLAYED, plr.getPlayed());
-                cv.put(NUMORD, numord);
-                cv.put(UPDATED, 1);
-                cv.put(TYPEPLAYLIST, typePlayList);
-                // если такой файл уже есть - перезаписать его
-                Cursor cur = db.rawQuery("select * from "+ TABLE_NAME+" where "+ID + " = ? and " + TYPEPLAYLIST + " = ?", new String[]{String.valueOf(plr.getId()), String.valueOf(typePlayList)});
-                if (cur != null) {
-                    if (cur.getCount() > 0) {
-                        db.update(TABLE_NAME, cv, ID + " = ? and "+TYPEPLAYLIST+" = ?", new String[]{String.valueOf(plr.getId()), String.valueOf(typePlayList)});
-                    } else {
-                        db.insert(TABLE_NAME, null, cv);
+                    cv.put(STATE, plr.getState());
+                    cv.put(PLAYED, plr.getPlayed());
+                    cv.put(NUMORD, numord);
+                    cv.put(UPDATED, 1);
+                    cv.put(TYPEPLAYLIST, typePlayList);
+                    // если такой файл уже есть - перезаписать его
+                    Cursor cur = db.rawQuery("select * from " + TABLE_NAME + " where " + ID + " = ? and " + TYPEPLAYLIST + " = ?", new String[]{String.valueOf(plr.getId()), String.valueOf(typePlayList)});
+                    if (cur != null) {
+                        if (cur.getCount() > 0) {
+                            db.update(TABLE_NAME, cv, ID + " = ? and " + TYPEPLAYLIST + " = ?", new String[]{String.valueOf(plr.getId()), String.valueOf(typePlayList)});
+                        } else {
+                            db.insert(TABLE_NAME, null, cv);
+                        }
+                        cur.close();
                     }
-                    cur.close();
+                    //db.close();
+                    numord++;
                 }
-                //db.close();
-                numord++;
+            } catch (Exception e) {
+                CustomExceptionHandler.logException("write playList error ", e);
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            CustomExceptionHandler.logException("write playList error ", e);
-            e.printStackTrace();
+            CustomExceptionHandler.log("write playList end " + playList.getPlaylist().size());
         }
-        CustomExceptionHandler.log("write playList end "+ playList.getPlaylist().size());
     }
 }

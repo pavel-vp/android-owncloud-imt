@@ -8,8 +8,8 @@ android {
         applicationId "com.mobile_me.imtv_player"
         minSdkVersion 15
         targetSdkVersion 23
-        versionCode 46
-        versionName "1.046"
+        versionCode 47
+        versionName "1.047"
     }
     signingConfigs {
         debug {
@@ -56,4 +56,10 @@ dependencies {
 
 repositories {
     mavenCentral()
+}
+
+android {
+    lintOptions {
+        abortOnError false
+    }
 }
