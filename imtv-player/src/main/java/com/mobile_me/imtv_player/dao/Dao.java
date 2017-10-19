@@ -100,8 +100,12 @@ public class Dao {
         deviceId = telephonyManager.getDeviceId();
         */
         WifiManager manager = (WifiManager) ctx.getSystemService(Context.WIFI_SERVICE);
-        WifiInfo info = manager.getConnectionInfo();
-        deviceId = info.getMacAddress().replace(":","");
+        if (manager.isWifiEnabled()) {
+            WifiInfo info = manager.getConnectionInfo();
+            deviceId = info.getMacAddress().replace(":", "");
+        } else {
+
+        }
 //deviceId = "352005048247251";
         CustomExceptionHandler.log("version:"+BuildConfig.VERSION_CODE);
         CustomExceptionHandler.log("deviceId:"+deviceId);

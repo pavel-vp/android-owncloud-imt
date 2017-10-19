@@ -7,6 +7,7 @@
     <string name ="user_agent">Mozilla/5.0 (Android) ownCloud sample </string>
 
     <string name="download_folder_path">imtv_download</string>
+    <string name="stat_folder_path">/imtv/stat</string>
     <string name="playlist_filepath">Playlist/%s.list</string>
     <string name="playlist2_filepath">Playlist/%s_2.list</string>
     <string name="video_dir">Videos</string>

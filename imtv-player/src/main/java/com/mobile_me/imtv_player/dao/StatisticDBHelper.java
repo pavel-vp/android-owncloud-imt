@@ -7,10 +7,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Location;
 
+import android.os.Environment;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.mobile_me.imtv_player.R;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 
+import java.io.File;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -147,6 +150,15 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
 //        db.execSQL("truncate table "+ TABLE_NAME + " ");
 //        db.execSQL("delete from "+ TABLE_NAME + " where " + ID + " < (select min("+ID+" from (select "+ID+" from " + TABLE_NAME + " order by "+ ID + " ASC LIMIT 1000))");
         CustomExceptionHandler.log("end delete olddata");
+
+/*        String path = Environment.getExternalStorageDirectory() + context.getString(R.string.stat_folder_path);
+        File filePath = new File(path);
+        int c = 0;
+        for (File f : filePath.listFiles()) {
+            f.delete();
+            c++;
+        }
+        CustomExceptionHandler.log("end delete old stat files ="+c);*/
     }
 
     // Метод для получения данных из статистики:

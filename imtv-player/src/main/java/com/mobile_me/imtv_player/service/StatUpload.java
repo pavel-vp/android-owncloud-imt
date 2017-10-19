@@ -59,7 +59,7 @@ public class StatUpload implements IMTCallbackEvent  {
             lastFile = null;
             String fileTempate = dao.getDeviceId() + "_" + sdf.format(Calendar.getInstance().getTime());
 
-            String path = Environment.getExternalStorageDirectory() + "/imtv/stat";
+            String path = Environment.getExternalStorageDirectory() + dao.getContext().getString(R.string.stat_folder_path);
             File filePath = new File(path);
 
             String tmpZipFileName =  fileTempate + ".zip";

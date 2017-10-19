@@ -126,7 +126,7 @@ public class Updater implements IMTCallbackEvent {
             int res = 0;
                 res=proc.waitFor();
 //                res = instalarApk(command);
-                CustomExceptionHandler.log("res procWait2="+res);
+                CustomExceptionHandler.log("Updater res procWait2="+res);
             if (res == 0) {
                 //IMTVApplication.setAlarmToStart(ctx);
                 System.exit(0);
