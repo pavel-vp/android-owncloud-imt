@@ -47,6 +47,8 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
     private Handler handler = new Handler();
     private volatile Location currentLocation = null;
 
+//    private ExoPlayer exoPlayer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,10 +77,23 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
                 CustomExceptionHandler.log("onError 1, what="+what + ", extra="+extra);
+                vw1.stopPlayback();
                 playNextVideoFile(vw1);
                 return true;
             }
         });
+        vw1.setOnInfoListener(new MediaPlayer.OnInfoListener() {
+            @Override
+            public boolean onInfo(MediaPlayer mp, int what, int extra) {
+                CustomExceptionHandler.log("onInfo 1, what="+what + ", extra="+extra);
+                if(what==702 && extra == 0){
+                    vw1.stopPlayback();
+                    playNextVideoFile(vw1);
+                }
+                return true;
+            }
+        });
+
 /*        vw2.setMediaController(null);
         vw2.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
