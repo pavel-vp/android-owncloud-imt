@@ -105,7 +105,7 @@ public class Updater implements IMTCallbackEvent {
         final PackageManager pm = ctx.getPackageManager();
         PackageInfo newInfo = pm.getPackageArchiveInfo(newFile.getAbsolutePath(), PackageManager.GET_META_DATA);
         CustomExceptionHandler.log("Updater newFile version= " + newInfo.versionCode + ", current version=" + BuildConfig.VERSION_CODE);
-        if (newInfo.versionCode != BuildConfig.VERSION_CODE) {
+        if (newInfo.versionCode > BuildConfig.VERSION_CODE) {
             CustomExceptionHandler.log("Updater start to update app");
 //                installApk2(newFile.getAbsolutePath());
             Updater.installAPKonRooted(newFile.getAbsolutePath(), ctx);

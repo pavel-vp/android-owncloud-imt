@@ -340,6 +340,19 @@ try {
         }
     }
 
+    private List<File> getListFiles(File parentDir) {
+        ArrayList<File> inFiles = new ArrayList<File>();
+        File[] files = parentDir.listFiles();
+        for (File file : files) {
+            if (file.isDirectory()) {
+                inFiles.addAll(getListFiles(file));
+            } else {
+                inFiles.add(file);
+            }
+        }
+        return inFiles;
+    }
+
     public void mergeAndSavePlayList(MTPlayList playListNew) {
         synchronized (playList) {
             CustomExceptionHandler.log("mergeAndSavePlayList playList="+playList + " with new ="+playListNew);
@@ -355,19 +368,19 @@ try {
                             newR.setPlayed(found.getPlayed());
                         }
                     }
-/*                    // а также удалить файлы, которых нет уже в новом
-                    for (Iterator<MTPlayListRec> iterator = this.playList.getPlaylist().iterator(); iterator.hasNext(); ) {
-                        MTPlayListRec pr = iterator.next();
+                    // а также удалить файлы, которых нет уже в новом
+                    // файлы взять из директории
+                    //File dirVideos = new File(dao.getDownVideoFolder());
+                    List<File> files = getListFiles(new File(dao.getDownVideoFolder()));
+                    for (File f : files) {
                         // если в новом его нет
-                        MTPlayListRec found = playListNew.searchById(pr.getId());
+                        MTPlayListRec found = playListNew.searchByFileName(f.getAbsolutePath(), dao.getDownVideoFolder());
                         if (found == null) {
                             // удалим саму запись, сам видеофайл тоже
-                            //log("delete file "+dao.getDownVideoFolder() +"/"+ pr.getFilename());
-                            //File f = new File(dao.getDownVideoFolder(), pr.getFilename());
-                            //f.delete();
-                            iterator.remove();
+                            CustomExceptionHandler.log("delete old video file "+f.getName());
+                            f.delete();
                         }
-                    }*/
+                    }
                     this.playList.getPlaylist().clear();
                     this.playList.getPlaylist().addAll(playListNew.getPlaylist());
                 dao.getPlayListDBHelper().updatePlayList(this.playList);

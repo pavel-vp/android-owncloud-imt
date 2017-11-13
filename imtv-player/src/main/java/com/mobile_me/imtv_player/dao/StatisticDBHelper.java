@@ -151,14 +151,14 @@ public class StatisticDBHelper extends SQLiteOpenHelper {
 //        db.execSQL("delete from "+ TABLE_NAME + " where " + ID + " < (select min("+ID+" from (select "+ID+" from " + TABLE_NAME + " order by "+ ID + " ASC LIMIT 1000))");
         CustomExceptionHandler.log("end delete olddata");
 
-/*        String path = Environment.getExternalStorageDirectory() + context.getString(R.string.stat_folder_path);
+        String path = Environment.getExternalStorageDirectory() + context.getString(R.string.stat_folder_path);
         File filePath = new File(path);
         int c = 0;
         for (File f : filePath.listFiles()) {
             f.delete();
             c++;
         }
-        CustomExceptionHandler.log("end delete old stat files ="+c);*/
+        CustomExceptionHandler.log("end delete old stat files ="+c);
     }
 
     // Метод для получения данных из статистики:

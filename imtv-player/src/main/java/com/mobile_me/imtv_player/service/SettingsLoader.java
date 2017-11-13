@@ -94,7 +94,7 @@ public class SettingsLoader implements IMTCallbackEvent {
             // отметим время
             dao.setLastTimeSettings(Calendar.getInstance().getTime().getTime());
             dao.setSetupRec(setupRec);
-            StatUpload.getInstance(dao).startUploadStat();
+         //   StatUpload.getInstance(dao).startUploadStat();
 
             //playList = mapper.readValue(new File(dao.getDownFolder().getAbsolutePath(), dao.getRemotePlayListFilePath()), MTPlayList.class);
         } catch (IOException e) {

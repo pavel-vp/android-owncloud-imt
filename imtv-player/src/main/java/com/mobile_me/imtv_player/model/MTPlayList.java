@@ -2,6 +2,7 @@ package com.mobile_me.imtv_player.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,5 +50,17 @@ public class MTPlayList implements Serializable {
                 "typePlayList=" + typePlayList +
                 ", playlist=" + playlist +
                 '}';
+    }
+
+    public MTPlayListRec searchByFileName(String name, String downDir) {
+        if (playlist.size() > 0) {
+            for (MTPlayListRec r : playlist) {
+                String fileName = new File(downDir, r.getFilename()).getAbsolutePath();
+                if (fileName.equals(name)) {
+                    return r;
+                }
+            }
+        }
+        return null;
     }
 }

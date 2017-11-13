@@ -172,7 +172,6 @@ public class Dao {
         CustomExceptionHandler.log("downVideoFolder="+downVideoFolder);
         CustomExceptionHandler.log("remoteSettingsInFilePath="+remoteSettingsInFilePath);
         CustomExceptionHandler.log("remoteSettingsNewFilePath="+remoteSettingsNewFilePath);
-
     }
 
 

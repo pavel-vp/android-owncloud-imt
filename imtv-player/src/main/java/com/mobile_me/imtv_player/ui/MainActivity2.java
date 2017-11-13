@@ -1,5 +1,6 @@
 package com.mobile_me.imtv_player.ui;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -8,25 +9,43 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.IntDef;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.VideoView;
 
+import com.google.android.exoplayer2.*;
+import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+import com.google.android.exoplayer2.ui.PlaybackControlView;
+import com.google.android.exoplayer2.ui.SimpleExoPlayerView;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DataSpec;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.FileDataSource;
 import com.mobile_me.imtv_player.R;
 import com.mobile_me.imtv_player.dao.Dao;
 import com.mobile_me.imtv_player.model.MTPlayList;
 import com.mobile_me.imtv_player.model.MTPlayListRec;
 import com.mobile_me.imtv_player.service.MTLoaderManager;
 import com.mobile_me.imtv_player.service.MTPlayListManager;
+import com.mobile_me.imtv_player.service.StatUpload;
 import com.mobile_me.imtv_player.util.CustomExceptionHandler;
 import com.mobile_me.imtv_player.util.RootUtils;
 import com.stericson.rootshell.RootShell;
 import com.stericson.roottools.RootTools;
 
+import java.io.File;
 import java.util.Calendar;
 
 /**
@@ -34,7 +53,7 @@ import java.util.Calendar;
  */
 public class MainActivity2  extends Activity implements SensorEventListener, LocationListener {
 
-    VideoView vw1;
+//    VideoView vw1;
     VideoView vw2;
     MTLoaderManager loaderManager;
     Dao dao;
@@ -47,7 +66,8 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
     private Handler handler = new Handler();
     private volatile Location currentLocation = null;
 
-//    private ExoPlayer exoPlayer;
+    private SimpleExoPlayerView exoPlayerView;
+    private SimpleExoPlayer exoPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,39 +80,24 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         Sensor TempSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
         mSensorManager.registerListener(this, TempSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
-        vw1 = (VideoView) findViewById(R.id.videoView);
+        exoPlayerView = (SimpleExoPlayerView) findViewById(R.id.exoplayer);
+        exoPlayerView.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FILL);
+
+        exoPlayerView.hideController();
+        exoPlayerView.setControllerVisibilityListener(new PlaybackControlView.VisibilityListener() {
+            @Override
+            public void onVisibilityChange(int i) {
+                if(i == 0) {
+                    exoPlayerView.hideController();
+                }
+            }
+        });
+
         //vw2 = (VideoView) findViewById(R.id.videoView2);
 
         loaderManager = MTLoaderManager.getInstance(this);
         dao = Dao.getInstance(this);
-        vw1.setMediaController(null);
-        vw1.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                CustomExceptionHandler.log("onCompletion 1");
-                playNextVideoFile(vw1);
-            }
-        });
-        vw1.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(MediaPlayer mp, int what, int extra) {
-                CustomExceptionHandler.log("onError 1, what="+what + ", extra="+extra);
-                vw1.stopPlayback();
-                playNextVideoFile(vw1);
-                return true;
-            }
-        });
-        vw1.setOnInfoListener(new MediaPlayer.OnInfoListener() {
-            @Override
-            public boolean onInfo(MediaPlayer mp, int what, int extra) {
-                CustomExceptionHandler.log("onInfo 1, what="+what + ", extra="+extra);
-                if(what==702 && extra == 0){
-                    vw1.stopPlayback();
-                    playNextVideoFile(vw1);
-                }
-                return true;
-            }
-        });
+
 
 /*        vw2.setMediaController(null);
         vw2.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -112,7 +117,7 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
             int height = displaymetrics.heightPixels;
             int width = height * 4 / 3;
             ViewGroup.LayoutParams layoutParams = new LinearLayout.LayoutParams(width, height-1);
-            vw1.setLayoutParams(layoutParams);
+            //vw1.setLayoutParams(layoutParams);
             //holder.setFixedSize(width, height-1);
 
             vw2.setVisibility(View.VISIBLE);
@@ -146,7 +151,113 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
                 }
             }
         }).start();
+        StatUpload.getInstance(dao).startUploadStat();
 
+    }
+
+    Player.EventListener exoPlayerListener = new Player.EventListener() {
+        @Override
+        public void onTimelineChanged(Timeline timeline, Object manifest) {
+
+        }
+
+        @Override
+        public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
+            CustomExceptionHandler.log("onTracksChanged");
+        }
+
+        @Override
+        public void onLoadingChanged(boolean isLoading) {
+            CustomExceptionHandler.log("onLoadingChanged "+isLoading);
+        }
+
+        @Override
+        public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+            CustomExceptionHandler.log("onPlayerStateChanged "+playWhenReady+","+playbackState);
+            if (playbackState == Player.STATE_ENDED) {
+                playNextVideoFile();
+            }
+        }
+
+        @Override
+        public void onRepeatModeChanged(int repeatMode) {
+
+        }
+
+        @Override
+        public void onPlayerError(ExoPlaybackException error) {
+            CustomExceptionHandler.logException("onPlayerError", error);
+            playNextVideoFile();
+        }
+
+        @Override
+        public void onPositionDiscontinuity() {
+
+        }
+
+        @Override
+        public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
+
+        }
+    };
+
+    private void initializePlayerAndPlayFile(String filePath) {
+        releasePlayer();
+        exoPlayer = ExoPlayerFactory.newSimpleInstance(this, new DefaultTrackSelector(), new DefaultLoadControl());
+        exoPlayer.addListener(exoPlayerListener);
+        exoPlayerView.setPlayer(exoPlayer);
+        exoPlayer.setPlayWhenReady(true);
+
+        Uri uri = Uri.fromFile(new File(filePath));
+        DataSpec dataSpec = new DataSpec(uri);
+        final FileDataSource fileDataSource = new FileDataSource();
+        try {
+            fileDataSource.open(dataSpec);
+        } catch (FileDataSource.FileDataSourceException e) {
+            e.printStackTrace();
+        }
+
+        DataSource.Factory factory = new DataSource.Factory() {
+            @Override
+            public DataSource createDataSource() {
+                return fileDataSource;
+            }
+        };
+        MediaSource audioSource = new ExtractorMediaSource(fileDataSource.getUri(),
+                factory, new DefaultExtractorsFactory(), null, null);
+
+        exoPlayer.prepare(audioSource);
+     //   exoPlayer.seekTo(0);
+
+    }
+
+    private MediaSource buildMediaSource(Uri uri) {
+        return new ExtractorMediaSource(uri,
+                new DefaultHttpDataSourceFactory("ua"),
+                new DefaultExtractorsFactory(), null, null);
+    }
+
+    @SuppressLint("InlinedApi")
+    private void hideSystemUi() {
+        exoPlayerView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+    }
+
+    private void releasePlayer() {
+        if (exoPlayer != null) {
+            exoPlayer.release();
+            exoPlayer = null;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        hideSystemUi();
     }
 
     @Override
@@ -195,9 +306,9 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         }).start();
 
         // запуск проигрывания сразу
-        playNextVideoFile(vw1);
+        playNextVideoFile();
         if (is2Players) {
-            playNextVideoFile(vw2);
+            playNextVideoFile();
         }
 
     }
@@ -209,20 +320,21 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         isActive = false;
         isInPreparing = false;
         isInPreparing2 = false;
-        vw1.stopPlayback();
+        releasePlayer();
         if (is2Players) {
             vw2.stopPlayback();
         }
     }
 
-    public void playNextVideoFile(VideoView vw) {
+    public void playNextVideoFile() {
         lastStartPlayFile = Calendar.getInstance().getTimeInMillis();
-        int type = (vw == vw1) ? MTPlayList.TYPEPLAYLIST_1 : MTPlayList.TYPEPLAYLIST_2;
+        int type = MTPlayList.TYPEPLAYLIST_1 ;
         CustomExceptionHandler.log("playNextVideoFile started. type="+type+",lastStartPlayFile="+lastStartPlayFile);
         logMemory();
-        if (vw.isPlaying() || (type == MTPlayList.TYPEPLAYLIST_1 && isInPreparing) || (type == MTPlayList.TYPEPLAYLIST_2 && isInPreparing2) || !isActive) {
-            CustomExceptionHandler.log("playNextVideoFile playing exit, type="+type);
-            return;
+        if (exoPlayer != null) {
+            releasePlayer();
+//            CustomExceptionHandler.log("playNextVideoFile playing exit, type="+type);
+//            return;
         }
 
         String filePathToPlay = null;
@@ -253,8 +365,7 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         if (filePathToPlay != null && isActive && found != null) {
             // запустить проигрывание этого файла
             CustomExceptionHandler.log("playList start playing, type="+type+", filePathToPlay="+filePathToPlay);
-            vw.setVideoPath(filePathToPlay);
-            vw.start();
+            initializePlayerAndPlayFile(filePathToPlay);
             dao.getmStatisticDBHelper().addStat(found, currentLocation);
         }
         if (forcedPlay) {

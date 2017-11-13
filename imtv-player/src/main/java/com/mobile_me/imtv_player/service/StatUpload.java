@@ -144,6 +144,7 @@ public class StatUpload implements IMTCallbackEvent  {
         }
         if (lastFile != null) {
             lastFile.delete();
+            CustomExceptionHandler.log("stat file deleted");
         }
         reLaunchUploadStat();
     }
