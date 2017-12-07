@@ -69,6 +69,8 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
     private SimpleExoPlayerView exoPlayerView;
     private SimpleExoPlayer exoPlayer;
 
+    private volatile String fileToPlay = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -173,9 +175,23 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
 
         @Override
         public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-            CustomExceptionHandler.log("onPlayerStateChanged "+playWhenReady+","+playbackState);
+            String s = null;
+            switch (playbackState){
+                case Player.STATE_IDLE:
+                    s= "STATE_IDLE";
+                    break;
+                case Player.STATE_BUFFERING:
+                    s="STATE_BUFFERING";
+                    break;
+                case Player.STATE_READY:
+                    s="STATE_READY";
+                    break;
+                case Player.STATE_ENDED:
+                    s="STATE_ENDED";
+            }
+            CustomExceptionHandler.log("onPlayerStateChanged "+playWhenReady+","+s);
             if (playbackState == Player.STATE_ENDED) {
-                playNextVideoFile();
+                playNextVideoFile(true);
             }
         }
 
@@ -187,7 +203,7 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         @Override
         public void onPlayerError(ExoPlaybackException error) {
             CustomExceptionHandler.logException("onPlayerError", error);
-            playNextVideoFile();
+            playNextVideoFile(true);
         }
 
         @Override
@@ -201,13 +217,17 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         }
     };
 
-    private void initializePlayerAndPlayFile(String filePath) {
-        releasePlayer();
-        exoPlayer = ExoPlayerFactory.newSimpleInstance(this, new DefaultTrackSelector(), new DefaultLoadControl());
-        exoPlayer.addListener(exoPlayerListener);
-        exoPlayerView.setPlayer(exoPlayer);
-        exoPlayer.setPlayWhenReady(true);
+    private void initializePlayer() {
+        if (exoPlayer==null) {
+            releasePlayer();
+            exoPlayer = ExoPlayerFactory.newSimpleInstance(this, new DefaultTrackSelector(), new DefaultLoadControl());
+            exoPlayer.addListener(exoPlayerListener);
+            exoPlayerView.setPlayer(exoPlayer);
+        }
+    }
 
+    private void initializePlayerAndPlayFile(String filePath) {
+        initializePlayer();
         Uri uri = Uri.fromFile(new File(filePath));
         DataSpec dataSpec = new DataSpec(uri);
         final FileDataSource fileDataSource = new FileDataSource();
@@ -227,7 +247,10 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
                 factory, new DefaultExtractorsFactory(), null, null);
 
         exoPlayer.prepare(audioSource);
+        exoPlayer.setPlayWhenReady(true);
      //   exoPlayer.seekTo(0);
+        // сразу следующий
+        getNextVideoFileToPlay();
 
     }
 
@@ -249,8 +272,10 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
 
     private void releasePlayer() {
         if (exoPlayer != null) {
+            exoPlayer.stop();
+            /*exoPlayer.removeListener(exoPlayerListener);
             exoPlayer.release();
-            exoPlayer = null;
+            exoPlayer = null;*/
         }
     }
 
@@ -265,6 +290,7 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         CustomExceptionHandler.log("onStart");
         super.onStart();
         isActive = true;
+        getNextVideoFileToPlay();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -306,9 +332,9 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         }).start();
 
         // запуск проигрывания сразу
-        playNextVideoFile();
+        playNextVideoFile(false);
         if (is2Players) {
-            playNextVideoFile();
+            playNextVideoFile(false);
         }
 
     }
@@ -326,53 +352,83 @@ public class MainActivity2  extends Activity implements SensorEventListener, Loc
         }
     }
 
-    public void playNextVideoFile() {
-        lastStartPlayFile = Calendar.getInstance().getTimeInMillis();
-        int type = MTPlayList.TYPEPLAYLIST_1 ;
-        CustomExceptionHandler.log("playNextVideoFile started. type="+type+",lastStartPlayFile="+lastStartPlayFile);
-        logMemory();
-        if (exoPlayer != null) {
-            releasePlayer();
+    public void playNextVideoFile(boolean isAsync) {
+        if (isAsync) {
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    initializePlayerAndPlayFile(MainActivity2.this.fileToPlay);
+                }
+            }, 100);
+        } else {
+            while(this.fileToPlay == null){
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            initializePlayerAndPlayFile(MainActivity2.this.fileToPlay);
+        }
+    }
+
+
+    public void getNextVideoFileToPlay() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                lastStartPlayFile = Calendar.getInstance().getTimeInMillis();
+                int type = MTPlayList.TYPEPLAYLIST_1 ;
+                CustomExceptionHandler.log("playNextVideoFile started. type="+type+",lastStartPlayFile="+lastStartPlayFile);
+                logMemory();
+    //            if (exoPlayer != null) {
+//                    releasePlayer();
 //            CustomExceptionHandler.log("playNextVideoFile playing exit, type="+type);
 //            return;
-        }
+  //              }
 
-        String filePathToPlay = null;
+                String filePathToPlay = null;
 
-        if (false) {
-            filePathToPlay.substring(1);
-        }
+                if (false) {
+                    filePathToPlay.substring(1);
+                }
 
-        boolean forcedPlay = false;
-        MTPlayListManager playListManager = Dao.getInstance(this).getPlayListManagerByType(type );
-        MTPlayListRec found = null;
-        if (type == MTPlayList.TYPEPLAYLIST_1) {
-            // взять из плейлиста следующий непроигранный
-            if (playListManager.getPlayList() != null) {
-                found = playListManager.getNextVideoFileForPlay(forcedPlay);
+                boolean forcedPlay = false;
+                MTPlayListManager playListManager = Dao.getInstance(MainActivity2.this).getPlayListManagerByType(type );
+                MTPlayListRec found = null;
+                if (type == MTPlayList.TYPEPLAYLIST_1) {
+                    // взять из плейлиста следующий непроигранный
+                    if (playListManager.getPlayList() != null) {
+                        found = playListManager.getNextVideoFileForPlay(forcedPlay);
+                    }
+                    // если непроигранного нет - значит все проиграли, запустим поиск с принудительнм возвращением хотя бы одного,
+                    // при этом по логике отбора файла - он должен вернуть хотя бы один, и возможно сбросить все состояния проигрывания.
+                    if (found == null) {
+                        forcedPlay = true;
+                        found = playListManager.getNextVideoFileForPlay(forcedPlay);
+                    }
+                    filePathToPlay = dao.getDownVideoFolder() + found.getFilename();
+                } else {
+                    found = playListManager.getRandomFile();
+                    filePathToPlay = dao.getDownVideoFolder() + found.getFilename();
+                }
+                if (filePathToPlay != null && isActive && found != null) {
+                    // запустить проигрывание этого файла
+                    CustomExceptionHandler.log("playList start playing, type="+type+", filePathToPlay="+filePathToPlay);
+                    setFileToPlay(filePathToPlay);
+                    dao.getmStatisticDBHelper().addStat(found, currentLocation);
+                }
+                if (forcedPlay) {
+                    // запустить загрузку плейлиста TODO: не надо же уже?
+                    //helper.loadPlayListFromServer();
+                }
+                CustomExceptionHandler.log("playNextVideoFile finished. type="+type);
             }
-            // если непроигранного нет - значит все проиграли, запустим поиск с принудительнм возвращением хотя бы одного,
-            // при этом по логике отбора файла - он должен вернуть хотя бы один, и возможно сбросить все состояния проигрывания.
-            if (found == null) {
-                forcedPlay = true;
-                found = playListManager.getNextVideoFileForPlay(forcedPlay);
-            }
-            filePathToPlay = dao.getDownVideoFolder() + found.getFilename();
-        } else {
-            found = playListManager.getRandomFile();
-            filePathToPlay = dao.getDownVideoFolder() + found.getFilename();
-        }
-        if (filePathToPlay != null && isActive && found != null) {
-            // запустить проигрывание этого файла
-            CustomExceptionHandler.log("playList start playing, type="+type+", filePathToPlay="+filePathToPlay);
-            initializePlayerAndPlayFile(filePathToPlay);
-            dao.getmStatisticDBHelper().addStat(found, currentLocation);
-        }
-        if (forcedPlay) {
-            // запустить загрузку плейлиста TODO: не надо же уже?
-            //helper.loadPlayListFromServer();
-        }
-        CustomExceptionHandler.log("playNextVideoFile finished. type="+type);
+        }).start();
+    }
+
+    private void setFileToPlay(String file) {
+        this.fileToPlay = file;
     }
 
     @Override
