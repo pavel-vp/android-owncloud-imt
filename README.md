@@ -3,4 +3,4 @@ IMTV-Player android application used OwnCloud framework to comminicate with serv
 WARNING.
 This is the old project (but still working one).
 Now I have moved to comminicate with the server through RestAPI and rewrited the application.
-The new one is IMTV-Player in the same GitHub account
+The new one is IMTV-Mobile in the same GitHub account
